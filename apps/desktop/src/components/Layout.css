@@ -1,0 +1,179 @@
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    background: var(--bg-primary);
+}
+
+/* Sidebar Styles */
+.sidebar {
+    width: 260px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 30px 20px;
+    box-sizing: border-box;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    transition: width 0.3s ease;
+    z-index: 100;
+}
+
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 40px;
+    padding-left: 10px;
+}
+
+.logo-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), #5a52d5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 20px;
+    box-shadow: 0 0 15px var(--primary-glow);
+    flex-shrink: 0;
+}
+
+.logo-area h2 {
+    transition: opacity 0.2s;
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 15px;
+    border-radius: 12px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.sidebar-item.active {
+    background: rgba(108, 99, 255, 0.1);
+    color: var(--primary);
+    border: 1px solid rgba(108, 99, 255, 0.2);
+}
+
+.sidebar-item svg {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.settings-area {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+}
+
+.main-content {
+    flex: 1;
+    padding: 40px 50px;
+    padding-top: 40px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    max-width: calc(100vw - 260px);
+}
+
+/* Draggable Region for Electron */
+.title-bar-drag {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 30px;
+    -webkit-app-region: drag;
+    z-index: 9999;
+    pointer-events: auto;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 900px) {
+    .sidebar {
+        width: 80px;
+        padding: 30px 10px;
+    }
+
+    .logo-area h2,
+    .sidebar-item span {
+        opacity: 0;
+        width: 0;
+        display: none;
+    }
+
+    .logo-area {
+        padding-left: 0;
+        justify-content: center;
+    }
+
+    .sidebar-item {
+        justify-content: center;
+        padding: 12px;
+    }
+
+    .main-content {
+        padding: 30px 20px;
+        max-width: calc(100vw - 80px);
+    }
+}
+
+@media (max-width: 600px) {
+    .app-container {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: 60px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 20px;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .nav-menu {
+        flex-direction: row;
+        flex: 0;
+    }
+
+    .sidebar-item span {
+        display: none;
+    }
+
+    .settings-area {
+        border-top: none;
+        padding-top: 0;
+    }
+
+    .logo-area {
+        margin-bottom: 0;
+    }
+
+    .main-content {
+        padding: 20px 15px;
+    }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "monty-workspace",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "echo 'Run specific package scripts instead'",
+    "setup": "npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  }
+}
