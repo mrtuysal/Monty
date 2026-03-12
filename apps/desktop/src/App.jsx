@@ -8,6 +8,7 @@ import BackupOverlay from './components/BackupOverlay';
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Accounts = lazy(() => import('./pages/Accounts'));
 const Payments = lazy(() => import('./pages/Payments'));
+const Receivables = lazy(() => import('./pages/Receivables'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Login = lazy(() => import('./pages/Login'));
 
@@ -113,6 +114,14 @@ function App() {
                             element={
                                 <ProtectedRoute>
                                     <Settings />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/receivables"
+                            element={
+                                <ProtectedRoute>
+                                    <Receivables />
                                 </ProtectedRoute>
                             }
                         />

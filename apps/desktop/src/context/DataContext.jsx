@@ -16,6 +16,7 @@ export function DataProvider({ children }) {
     const [dataLoading, setDataLoading] = useState(false);
     const [accounts, setAccounts] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [receivables, setReceivables] = useState([]);
     const [userProfile, setUserProfile] = useState({});
     const [session, setSession] = useState(null);
     const [authLoading, setAuthLoading] = useState(true);
@@ -46,7 +47,17 @@ export function DataProvider({ children }) {
             if (payError) throw payError;
             setPayments((payData || []).map(mapPaymentFromDB));
 
-            // 3. Fetch Profile
+            // 3. Fetch Receivables
+            const { data: recData, error: recError } = await supabase
+                .from('receivables')
+                .select('*')
+                .eq('user_id', userId);
+            // Graceful fallback: table may not exist yet
+            if (!recError) {
+                setReceivables(recData || []);
+            }
+
+            // 4. Fetch Profile
             const { data: profData, error: profError } = await supabase
                 .from('profiles')
                 .select('*')
@@ -96,6 +107,7 @@ export function DataProvider({ children }) {
             } else {
                 setAccounts([]);
                 setPayments([]);
+                setReceivables([]);
                 setUserProfile({});
             }
             setAuthLoading(false);
@@ -146,7 +158,7 @@ export function DataProvider({ children }) {
 
                 if (error) throw error;
             } catch (err) {
-                console.error("Error updating payment:", err);
+                console.error('Error updating payment:', err);
             }
         }
     };
@@ -160,6 +172,76 @@ export function DataProvider({ children }) {
                 if (error) throw error;
             } catch (err) {
                 console.error("Error deleting payment:", err);
+            }
+        }
+    };
+
+    // --- Receivables/Debts CRUD ---
+
+    const addReceivable = async (item) => {
+        const tempId = crypto.randomUUID();
+        const withId = { ...item, id: tempId, createdAt: new Date().toISOString() };
+        setReceivables(prev => [...prev, withId]);
+        if (session?.user) {
+            try {
+                const { data, error } = await supabase.from('receivables').insert([{
+                    user_id: session.user.id,
+                    type: item.type,
+                    person: item.person,
+                    description: item.description || '',
+                    amount: item.amount,
+                    paid_amount: 0,
+                    status: item.status || 'PENDING',
+                    date: item.date || new Date().toISOString().split('T')[0],
+                    due_date: null,
+                    notes: item.notes || ''
+                }]).select().single();
+                if (error) {
+                    console.warn('Receivables table may not exist yet. Data kept locally.', err);
+                    // Do NOT revert — record stays visible locally
+                } else {
+                    setReceivables(prev => prev.map(r =>
+                        r.id === tempId ? { ...data, createdAt: data.created_at } : r
+                    ));
+                }
+            } catch (err) {
+                console.warn('Could not save receivable to DB (table may not exist):', err);
+                // Do NOT revert
+            }
+        }
+    };
+
+    const updateReceivable = async (item) => {
+        setReceivables(prev => prev.map(r => r.id === item.id ? item : r));
+        if (session?.user) {
+            try {
+                const { error } = await supabase.from('receivables').update({
+                    type: item.type,
+                    person: item.person,
+                    description: item.description || '',
+                    amount: item.amount,
+                    paid_amount: item.paidAmount || 0,
+                    status: item.status,
+                    date: item.date,
+                    due_date: item.dueDate || null,
+                    notes: item.notes || '',
+                    updated_at: new Date()
+                }).eq('id', item.id);
+                if (error) throw error;
+            } catch (err) {
+                console.error('Error updating receivable:', err);
+            }
+        }
+    };
+
+    const deleteReceivable = async (id) => {
+        setReceivables(prev => prev.filter(r => r.id !== id));
+        if (session?.user) {
+            try {
+                const { error } = await supabase.from('receivables').delete().eq('id', id);
+                if (error) throw error;
+            } catch (err) {
+                console.error('Error deleting receivable:', err);
             }
         }
     };
@@ -610,6 +692,10 @@ export function DataProvider({ children }) {
         addPayment,
         updatePayment,
         deletePayment,
+        receivables,
+        addReceivable,
+        updateReceivable,
+        deleteReceivable,
         formatMoneyInput,
         parseMoneyInput,
         formatCurrencyDisplay,

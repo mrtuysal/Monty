@@ -29,6 +29,10 @@ export default function Settings() {
     const [autoLaunch, setAutoLaunch] = useState(false);
     const [autoLaunchLoading, setAutoLaunchLoading] = useState(true);
 
+    // Updater states
+    const [appVersion, setAppVersion] = useState('');
+    const [updateStatus, setUpdateStatus] = useState({ status: 'idle', data: null });
+
     // Load initial profile data
     useEffect(() => {
         if (userProfile) {
@@ -49,19 +53,43 @@ export default function Settings() {
 
     // Load auto-launch status from Electron
     useEffect(() => {
-        const loadAutoLaunch = async () => {
-            if (window.electronAPI?.getAutoLaunch) {
+        const loadElectronData = async () => {
+            if (window.electronAPI) {
                 try {
                     const enabled = await window.electronAPI.getAutoLaunch();
                     setAutoLaunch(enabled);
+
+                    if (window.electronAPI.getAppVersion) {
+                        const version = await window.electronAPI.getAppVersion();
+                        setAppVersion(version);
+                    }
+
+                    if (window.electronAPI.onUpdateStatus) {
+                        window.electronAPI.onUpdateStatus((info) => {
+                            setUpdateStatus(info);
+                        });
+                    }
                 } catch (err) {
-                    console.error('Failed to get auto-launch status:', err);
+                    console.error('Error loading Electron data:', err);
                 }
             }
             setAutoLaunchLoading(false);
         };
-        loadAutoLaunch();
+        loadElectronData();
     }, []);
+
+    const handleCheckForUpdates = async () => {
+        if (window.electronAPI?.checkForUpdates) {
+            setUpdateStatus({ status: 'checking', data: null });
+            await window.electronAPI.checkForUpdates();
+        }
+    };
+
+    const handleInstallUpdate = async () => {
+        if (window.electronAPI?.installUpdate) {
+            await window.electronAPI.installUpdate();
+        }
+    };
 
     const handleAutoLaunchToggle = async () => {
         const newValue = !autoLaunch;
@@ -645,9 +673,54 @@ export default function Settings() {
                     </div>
                 </div>
 
+                {/* 5. Güncellemeler ve Versiyon */}
+                <div className="glass-panel" style={{ ...sectionStyle, marginTop: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '15px' }}>
+                        <FaSync size={20} color="#00bcd4" />
+                        <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>Güncellemeler</h2>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '8px' }}>
+                        <div>
+                            <div style={{ fontSize: '1rem', color: '#fff', fontWeight: '500' }}>
+                                Mevcut Versiyon: <span style={{ color: '#00bcd4' }}>v{appVersion || 'Dev'}</span>
+                            </div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '5px' }}>
+                                {updateStatus.status === 'checking' && 'Güncellemeler denetleniyor...'}
+                                {updateStatus.status === 'up-to-date' && 'Uygulamanız güncel.'}
+                                {updateStatus.status === 'available' && `Yeni sürüm mevcut: v${updateStatus.data?.version}`}
+                                {updateStatus.status === 'downloading' && `İndiriliyor: %${updateStatus.data?.percent}`}
+                                {updateStatus.status === 'downloaded' && 'Güncelleme indirildi, yüklemeye hazır.'}
+                                {updateStatus.status === 'error' && <span style={{ color: '#ff453a' }}>Hata: {updateStatus.data?.message}</span>}
+                                {updateStatus.status === 'idle' && 'Son kontrol: Bilinmiyor'}
+                            </div>
+                        </div>
+
+                        <div>
+                            {updateStatus.status === 'downloading' ? (
+                                <div className="spinner" style={{ width: '20px', height: '20px', borderColor: '#00bcd4', borderTopColor: 'transparent' }} />
+                            ) : updateStatus.status === 'downloaded' ? (
+                                <button onClick={handleInstallUpdate} className="btn" style={{ background: '#4caf50', color: '#fff', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    Şimdi Yeniden Başlat ve Yükle
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleCheckForUpdates}
+                                    className="btn btn-secondary"
+                                    disabled={updateStatus.status === 'checking'}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                                >
+                                    <FaSync size={12} style={{ animation: updateStatus.status === 'checking' ? 'spin 1s linear infinite' : 'none' }} />
+                                    Güncellemeleri Denetle
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
                 {/* Footer Info */}
-                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '50px' }}>
-                    <p>Monty App v1.0.0</p>
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '40px' }}>
+                    <p>Monty App v{appVersion || '2.0.0'} — developed by Murat</p>
                 </div>
             </div>
         </Layout>

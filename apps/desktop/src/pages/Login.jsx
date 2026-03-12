@@ -65,17 +65,53 @@ export default function Login() {
     };
 
     const handleOAuth = async (provider) => {
+        setLoading(true);
+        setError(null);
         try {
             const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: provider.toLowerCase(), // 'google' or 'apple'
+                provider: provider.toLowerCase(),
                 options: {
-                    redirectTo: window.location.origin + '/'
+                    redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`,
+                    skipBrowserRedirect: true
                 }
             });
             if (error) throw error;
-            // The user will be redirected to the provider
+
+            if (data?.url) {
+                // If running in packaged desktop app, use Electron's secure window
+                if (window.electronAPI && window.electronAPI.openAuthWindow) {
+                    const callbackUrl = await window.electronAPI.openAuthWindow(data.url);
+                    if (callbackUrl) {
+                        try {
+                            const urlObj = new URL(callbackUrl);
+                            const hashParams = new URLSearchParams(urlObj.hash.substring(1));
+                            const accessToken = hashParams.get('access_token');
+                            const refreshToken = hashParams.get('refresh_token');
+
+                            if (accessToken && refreshToken) {
+                                await supabase.auth.setSession({
+                                    access_token: accessToken,
+                                    refresh_token: refreshToken
+                                });
+                                navigate('/');
+                            } else {
+                                setError('Giriş bilgileri okunamadı.');
+                            }
+                        } catch (e) {
+                            setError('Geçersiz doğrulama bağlantısı.');
+                        }
+                    } else {
+                        setError('Giriş penceresi kapatıldı.');
+                    }
+                    setLoading(false);
+                } else {
+                    // Fallback for web mode
+                    window.location.href = data.url;
+                }
+            }
         } catch (err) {
             setError(err.message);
+            setLoading(false);
         }
     };
 

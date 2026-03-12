@@ -1,20 +1,66 @@
 {
     "name": "monty-desktop",
-    "version": "2.0.0",
+    "version": "2.1.0",
+    "description": "Monty - Akıllı Ödeme Takip Uygulaması",
+    "author": "Murat",
     "main": "main.cjs",
     "type": "module",
     "scripts": {
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
-        "start": "electron ."
+        "start": "electron .",
+        "dist": "vite build && npx electron-builder --win"
+    },
+    "build": {
+        "appId": "com.monty.desktop",
+        "productName": "Monty",
+        "directories": {
+            "output": "release"
+        },
+        "files": [
+            "main.cjs",
+            "preload.cjs"
+        ],
+        "extraResources": [
+            {
+                "from": "./dist",
+                "to": "dist",
+                "filter": [
+                    "**/*"
+                ]
+            }
+        ],
+        "win": {
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ]
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "shortcutName": "Monty"
+        },
+        "publish": [
+            {
+                "provider": "github",
+                "owner": "mrtuysal",
+                "repo": "Monty"
+            }
+        ]
     },
     "dependencies": {
         "@hello-pangea/dnd": "^18.0.1",
-        "@monty/core": "*",
         "@supabase/supabase-js": "^2.97.0",
         "clsx": "^2.1.0",
-        "electron": "^28.0.0",
+        "electron-updater": "^6.8.3",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-icons": "^5.5.0",
@@ -23,6 +69,8 @@
     },
     "devDependencies": {
         "@vitejs/plugin-react": "^4.2.1",
+        "electron": "28.3.3",
+        "electron-builder": "^25.1.8",
         "vite": "^5.0.12"
     }
 }

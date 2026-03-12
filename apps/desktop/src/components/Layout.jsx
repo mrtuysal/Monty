@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { FaHome, FaWallet, FaCreditCard, FaCog } from 'react-icons/fa';
+import { FaHome, FaWallet, FaCreditCard, FaCog, FaHandshake } from 'react-icons/fa';
 import clsx from 'clsx';
 import './Layout.css';
 
@@ -31,6 +31,7 @@ export default function Layout({ children }) {
                     <SidebarItem to="/" icon={<FaHome />} label="Genel Bakış" />
                     <SidebarItem to="/payments" icon={<FaCreditCard />} label="Ödemeler" />
                     <SidebarItem to="/accounts" icon={<FaWallet />} label="Hesaplar" />
+                    <SidebarItem to="/receivables" icon={<FaHandshake />} label="Alacak / Borç" />
                 </nav>
 
                 <div className="settings-area">

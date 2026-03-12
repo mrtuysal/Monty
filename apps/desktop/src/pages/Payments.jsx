@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Layout from '../components/Layout';
 import FileUploadModal from '../components/FileUploadModal';
@@ -20,6 +20,7 @@ export default function Payments() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPayment, setEditingPayment] = useState(null);
     const [menuOpenId, setMenuOpenId] = useState(null); // Track which row's menu is open
+    const [menuPos, setMenuPos] = useState({ top: 0, left: 0 }); // Portal menu position
     const [isFileUploadOpen, setIsFileUploadOpen] = useState(false);
 
     // Date State
@@ -286,11 +287,21 @@ export default function Payments() {
                                                     );
                                                 })()}
                                             </td>
-                                            <td style={{ padding: '10px', textAlign: 'center', position: 'relative' }}>
+                                            <td style={{ padding: '10px', textAlign: 'center' }}>
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setMenuOpenId(menuOpenId === item.id ? null : item.id);
+                                                        if (menuOpenId === item.id) {
+                                                            setMenuOpenId(null);
+                                                        } else {
+                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                            // Position to the left of the button, align top
+                                                            setMenuPos({
+                                                                top: rect.top,
+                                                                left: rect.right - 175
+                                                            });
+                                                            setMenuOpenId(item.id);
+                                                        }
                                                     }}
                                                     style={{
                                                         background: 'none',
@@ -303,86 +314,6 @@ export default function Payments() {
                                                 >
                                                     <FaEllipsisV />
                                                 </button>
-
-                                                {/* Dropdown Menu */}
-                                                {menuOpenId === item.id && (
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        right: '30px',
-                                                        top: '0',
-                                                        background: '#1a1a1a',
-                                                        border: '1px solid var(--border)',
-                                                        borderRadius: 'var(--radius-md)',
-                                                        boxShadow: '0 5px 20px rgba(0,0,0,0.6)',
-                                                        zIndex: 999,
-                                                        minWidth: '160px',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        overflow: 'hidden'
-                                                    }}>
-                                                        <button
-                                                            onClick={() => handleEdit(item)}
-                                                            style={{
-                                                                padding: '12px 15px',
-                                                                background: 'transparent',
-                                                                border: 'none',
-                                                                borderBottom: '1px solid #333',
-                                                                color: '#fff',
-                                                                textAlign: 'left',
-                                                                cursor: 'pointer',
-                                                                fontSize: '13px',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '8px'
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.background = '#333'}
-                                                            onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                                                        >
-                                                            ✏️ Düzenle
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => handleToggleStatus(item)}
-                                                            style={{
-                                                                padding: '12px 15px',
-                                                                background: 'transparent',
-                                                                border: 'none',
-                                                                borderBottom: '1px solid #333',
-                                                                color: item.status === 'PAID' ? '#ff453a' : '#32d74b', // Red if paid (to undo), Green if pending (to pay)
-                                                                textAlign: 'left',
-                                                                cursor: 'pointer',
-                                                                fontSize: '13px',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '8px'
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.background = '#333'}
-                                                            onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                                                        >
-                                                            {item.status === 'PAID' ? '❌ Ödenmedi Yap' : '✅ Ödendi İşaretle'}
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => handleDeleteClick(item.id)}
-                                                            style={{
-                                                                padding: '12px 15px',
-                                                                background: 'transparent',
-                                                                border: 'none',
-                                                                color: '#ff453a',
-                                                                textAlign: 'left',
-                                                                cursor: 'pointer',
-                                                                fontSize: '13px',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '8px'
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.background = '#333'}
-                                                            onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                                                        >
-                                                            🗑️ Sil
-                                                        </button>
-                                                    </div>
-                                                )}
                                             </td>
                                         </tr>
                                     );
@@ -392,6 +323,73 @@ export default function Payments() {
                     </table>
                 </div>
             </div>
+
+            {/* Portal Dropdown Menu - Renders outside table to avoid clipping */}
+            {menuOpenId && createPortal(
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: `${menuPos.top}px`,
+                        left: `${menuPos.left}px`,
+                        background: '#1a1a1a',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: '0 8px 30px rgba(0,0,0,0.7)',
+                        zIndex: 99998,
+                        minWidth: '170px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden'
+                    }}
+                    onClick={e => e.stopPropagation()}
+                >
+                    {(() => {
+                        const item = filteredPayments.find(p => p.id === menuOpenId);
+                        if (!item) return null;
+                        const menuBtnStyle = {
+                            padding: '12px 15px',
+                            background: 'transparent',
+                            border: 'none',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: '100%'
+                        };
+                        return (
+                            <>
+                                <button
+                                    onClick={() => handleEdit(item)}
+                                    style={{ ...menuBtnStyle, color: '#fff', borderBottom: '1px solid #333' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = '#333'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    ✏️ Düzenle
+                                </button>
+                                <button
+                                    onClick={() => handleToggleStatus(item)}
+                                    style={{ ...menuBtnStyle, color: item.status === 'PAID' ? '#ff453a' : '#32d74b', borderBottom: '1px solid #333' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = '#333'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    {item.status === 'PAID' ? '❌ Ödenmedi Yap' : '✅ Ödendi İşaretle'}
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteClick(item.id)}
+                                    style={{ ...menuBtnStyle, color: '#ff453a' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = '#333'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    🗑️ Sil
+                                </button>
+                            </>
+                        );
+                    })()}
+                </div>,
+                document.body
+            )}
 
             <AddPaymentModal
                 isOpen={isModalOpen}
@@ -436,6 +434,7 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
         isRecurring: false,
         recurringFrequency: 'MONTHLY'
     });
+    const [formErrors, setFormErrors] = useState({});
 
     useEffect(() => {
         if (initialData) {
@@ -452,7 +451,6 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
                 recurringFrequency: initialData.recurringFrequency || 'MONTHLY'
             });
         } else {
-            // Default: Credit Card, Recurring True, Empty Amount allowed
             setPaymentType('CREDIT_CARD');
             setFormData({
                 institution: '',
@@ -462,10 +460,11 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
                 paymentAmount: '',
                 statementDate: '',
                 dueDate: '',
-                isRecurring: true, // Default Reccuring True for Credit Card
+                isRecurring: true,
                 recurringFrequency: 'MONTHLY'
             });
         }
+        setFormErrors({});
     }, [initialData, isOpen]);
 
     // Handle Payment Type Change specifically to toggle recurring defaults
@@ -500,27 +499,36 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
             }
             return newState;
         });
+
+        // Clear error for this field on change
+        if (formErrors[name]) {
+            setFormErrors(prev => ({ ...prev, [name]: null }));
+        }
     };
 
     const handleSave = () => {
+        const errors = {};
+
         // Validation Logic
         let institutionLabel = 'Kurum Adı';
         if (paymentType === 'CREDIT_CARD') institutionLabel = 'Kart / Banka Adı';
         if (paymentType === 'OTHER') institutionLabel = 'Ödeme Yeri';
 
         if (!formData.institution || formData.institution.trim() === '') {
-            alert(`Lütfen ${institutionLabel} alanını doldurunuz.`);
-            return;
+            errors.institution = 'Bu alan zorunludur.';
         }
 
         if (!formData.dueDate) {
-            alert('Lütfen Son Ödeme Tarihi seçiniz.');
-            return;
+            errors.dueDate = 'Son ödeme tarihi seçiniz.';
         }
 
         // Amount Check: Required for non-credit cards
         if (paymentType !== 'CREDIT_CARD' && !formData.amount) {
-            alert('Lütfen Tutar giriniz.');
+            errors.amount = 'Tutar giriniz.';
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
             return;
         }
 
@@ -545,17 +553,20 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
 
     if (!isOpen) return null;
 
-    const inputStyle = {
+    // inputStyle is now a function accepting the field name to apply red border on error
+    const inputStyle = (fieldName) => ({
         width: '100%',
         padding: '12px',
         borderRadius: 'var(--radius-md)',
         background: '#1a1a1a',
-        border: '1px solid var(--border)',
+        border: `1px solid ${formErrors[fieldName] ? '#ff453a' : 'var(--border)'}`,
         color: '#fff',
         fontSize: '14px',
         outline: 'none',
-        boxSizing: 'border-box'
-    };
+        boxSizing: 'border-box',
+        boxShadow: formErrors[fieldName] ? '0 0 0 2px rgba(255,69,58,0.25)' : 'none',
+        transition: 'border-color 0.2s, box-shadow 0.2s'
+    });
 
     const labelStyle = {
         display: 'block',
@@ -564,6 +575,22 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
         fontSize: '13px',
         fontWeight: '500'
     };
+
+    const errorMsgStyle = {
+        color: '#ff453a',
+        fontSize: '11px',
+        marginTop: '5px',
+        display: 'block'
+    };
+
+    const selectStyle = (fieldName) => ({
+        ...inputStyle(fieldName),
+        cursor: 'pointer',
+        appearance: 'none',
+        WebkitAppearance: 'none',
+        background: `#1a1a1a url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 15px center`,
+        backgroundSize: '12px'
+    });
 
     return createPortal(
         <div style={{
@@ -605,7 +632,7 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
                             <select
                                 value={paymentType}
                                 onChange={handlePaymentTypeChange}
-                                style={{ ...inputStyle, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', background: '#1a1a1a url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 15px center', backgroundSize: '12px' }}
+                                style={selectStyle('paymentType')}
                             >
                                 <option value="CREDIT_CARD" style={{ background: '#111', color: '#fff' }}>💳 Kredi Kartı</option>
                                 <option value="BILL" style={{ background: '#111', color: '#fff' }}>📄 Fatura</option>
@@ -637,7 +664,7 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
                                 name="recurringFrequency"
                                 value={formData.recurringFrequency}
                                 onChange={handleChange}
-                                style={{ ...inputStyle, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', background: '#1a1a1a url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 15px center', backgroundSize: '12px' }}
+                                style={selectStyle('recurringFrequency')}
                             >
                                 <option value="WEEKLY">Haftalık</option>
                                 <option value="MONTHLY">Aylık (Varsayılan)</option>
@@ -656,11 +683,11 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
                                 value={formData.description}
                                 onChange={handleChange}
                                 placeholder="Örn: Şubat Ekstresi"
-                                style={inputStyle}
+                                style={inputStyle('description')}
                             />
                         </div>
                         <div>
-                            <label style={labelStyle}>
+                            <label style={{ ...labelStyle, color: formErrors.institution ? '#ff453a' : 'var(--text-muted)' }}>
                                 {paymentType === 'CREDIT_CARD' ? 'Kart / Banka Adı' : paymentType === 'BILL' ? 'Kurum Adı' : 'Ödeme Yeri'}
                             </label>
                             <input
@@ -669,8 +696,9 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
                                 value={formData.institution}
                                 onChange={handleChange}
                                 placeholder="Örn: Garanti Bonus"
-                                style={inputStyle}
+                                style={inputStyle('institution')}
                             />
+                            {formErrors.institution && <span style={errorMsgStyle}>⚠ {formErrors.institution}</span>}
                         </div>
                     </div>
 
@@ -683,25 +711,26 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
                                     name="statementDate"
                                     value={formData.statementDate}
                                     onChange={handleChange}
-                                    style={{ ...inputStyle, colorScheme: 'dark' }}
+                                    style={{ ...inputStyle('statementDate'), colorScheme: 'dark' }}
                                 />
                             </div>
                         )}
                         <div style={paymentType !== 'CREDIT_CARD' ? { gridColumn: 'span 2' } : {}}>
-                            <label style={labelStyle}>Son Ödeme Tarihi</label>
+                            <label style={{ ...labelStyle, color: formErrors.dueDate ? '#ff453a' : 'var(--text-muted)' }}>Son Ödeme Tarihi</label>
                             <input
                                 type="date"
                                 name="dueDate"
                                 value={formData.dueDate}
                                 onChange={handleChange}
-                                style={{ ...inputStyle, colorScheme: 'dark' }}
+                                style={{ ...inputStyle('dueDate'), colorScheme: 'dark' }}
                             />
+                            {formErrors.dueDate && <span style={errorMsgStyle}>⚠ {formErrors.dueDate}</span>}
                         </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div>
-                            <label style={labelStyle}>
+                            <label style={{ ...labelStyle, color: formErrors.amount ? '#ff453a' : 'var(--text-muted)' }}>
                                 {paymentType === 'CREDIT_CARD' ? 'Dönem Borcu (TL)' : 'Tutar (TL)'}
                             </label>
                             <input
@@ -710,8 +739,9 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
                                 value={formData.amount}
                                 onChange={handleChange}
                                 placeholder={paymentType === 'CREDIT_CARD' ? "0,00 (Ekstre bekleniyor)" : "0,00"}
-                                style={inputStyle}
+                                style={inputStyle('amount')}
                             />
+                            {formErrors.amount && <span style={errorMsgStyle}>⚠ {formErrors.amount}</span>}
                         </div>
 
                         <div>
@@ -722,7 +752,7 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
                                 value={formData.paymentAmount}
                                 onChange={handleChange}
                                 placeholder="0,00"
-                                style={inputStyle}
+                                style={inputStyle('paymentAmount')}
                             />
                         </div>
 
@@ -735,7 +765,7 @@ function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
                                     value={formData.minPayment}
                                     onChange={handleChange}
                                     placeholder="0,00"
-                                    style={inputStyle}
+                                    style={inputStyle('minPayment')}
                                 />
                             </div>
                         )}

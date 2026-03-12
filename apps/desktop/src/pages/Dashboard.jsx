@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import Layout from '../components/Layout';
 import { useData } from '../context/DataContext';
-import { FaWallet, FaMoneyBillWave, FaArrowRight, FaCreditCard, FaFileInvoiceDollar, FaEllipsisH, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaWallet, FaMoneyBillWave, FaArrowRight, FaCreditCard, FaFileInvoiceDollar, FaEllipsisH, FaChevronLeft, FaChevronRight, FaHandshake } from 'react-icons/fa';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
-    const { accounts, payments, dataLoading } = useData();
+    const { accounts, payments, receivables, dataLoading } = useData();
     const navigate = useNavigate();
     const [selectedCategory, setSelectedCategory] = useState(null); // 'CREDIT_CARD', 'BILL', 'OTHER'
 
@@ -45,6 +45,17 @@ export default function Dashboard() {
         });
         return totals;
     }, [accounts]);
+
+    // Receivables Summary
+    const receivableStats = useMemo(() => {
+        const totalReceivable = receivables
+            .filter(r => r.type === 'RECEIVABLE' && r.status !== 'DONE')
+            .reduce((s, r) => s + (r.amount || 0), 0);
+        const totalDebt = receivables
+            .filter(r => r.type === 'DEBT' && r.status !== 'DONE')
+            .reduce((s, r) => s + (r.amount || 0), 0);
+        return { totalReceivable, totalDebt, net: totalReceivable - totalDebt };
+    }, [receivables]);
 
     // Payment Calculations
     // Using selectedDate state instead of hardcoded filtering
@@ -181,7 +192,77 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* Row 2: Total Payments (Click goes to Payments page) */}
+                {/* Row 2: Receivables / Debts Summary */}
+                <div
+                    className="glass-panel"
+                    style={{
+                        padding: '25px',
+                        borderRadius: 'var(--radius-lg)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s',
+                        background: 'linear-gradient(90deg, rgba(108, 99, 255, 0.1) 0%, rgba(108, 99, 255, 0.02) 100%)',
+                        borderLeft: '4px solid #6c63ff'
+                    }}
+                    onClick={() => navigate('/receivables')}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
+                        <div style={{
+                            width: '50px',
+                            height: '50px',
+                            borderRadius: '12px',
+                            background: 'rgba(108, 99, 255, 0.2)',
+                            color: '#6c63ff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '24px'
+                        }}>
+                            <FaHandshake />
+                        </div>
+                        <div>
+                            <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#eee' }}>Alacak / Borç</h2>
+                            <p style={{ margin: '5px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                {receivables.filter(r => r.status !== 'DONE').length} aktif kayıt
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right', minWidth: '200px' }}>
+                        <div style={{ display: 'flex', gap: '20px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                            <div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '3px' }}>Alacak</div>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#4caf50' }}>
+                                    {formatCurrency(receivableStats.totalReceivable, 'TRY')}
+                                </div>
+                            </div>
+                            <div style={{ color: 'var(--border)', fontSize: '20px' }}>|</div>
+                            <div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '3px' }}>Borç</div>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#f44336' }}>
+                                    {formatCurrency(receivableStats.totalDebt, 'TRY')}
+                                </div>
+                            </div>
+                            <div style={{ color: 'var(--border)', fontSize: '20px' }}>|</div>
+                            <div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '3px' }}>Net</div>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: receivableStats.net >= 0 ? '#4caf50' : '#f44336' }}>
+                                    {receivableStats.net >= 0 ? '+' : ''}{formatCurrency(Math.abs(receivableStats.net), 'TRY')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ color: 'var(--text-muted)', marginLeft: '15px' }}>
+                        <FaArrowRight size={20} />
+                    </div>
+                </div>
+
+                {/* Row 3: Total Payments (Click goes to Payments page) */}
                 <div
                     className="glass-panel"
                     style={{

@@ -11,6 +11,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Clear all session/storage data (used during logout)
     clearSessionData: () => ipcRenderer.invoke('clear-session-data'),
 
+    // OAuth
+    openAuthWindow: (url) => ipcRenderer.invoke('open-auth-window', url),
+
     // Get the application version
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 
@@ -20,6 +23,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Native desktop notifications
     showNotification: (options) => ipcRenderer.invoke('show-notification', options),
+
+    // Auto-Updater
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+    getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
+    installUpdate: () => ipcRenderer.invoke('install-update'),
+    onUpdateStatus: (callback) => {
+        // Remove existing listeners to avoid duplicates
+        ipcRenderer.removeAllListeners('update-status');
+        ipcRenderer.on('update-status', (event, data) => callback(data));
+    },
 
     // Check if running in Electron
     isElectron: true,
