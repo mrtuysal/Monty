@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Monty",
+    "slug": "monty-mobile",
+    "version": "2.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.monty.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.monty.mobile"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "monty",
+    "extra": {
+      "eas": {
+        "projectId": "8d5dadee-bbd7-4980-8d97-e8f0ac334b0c"
+      }
+    },
+    "owner": "indicmindic"
+  }
+}
