@@ -39,7 +39,9 @@ export default function Layout({ children }) {
             {/* Sidebar */}
             <aside className="sidebar glass-panel">
                 <div className="logo-area">
-                    <div className="logo-circle">M</div>
+                    <div className="logo-img-wrapper">
+                        <img src="/logo.png" alt="Monty Logo" className="logo-img" />
+                    </div>
                     <h2>Monty</h2>
                 </div>
 

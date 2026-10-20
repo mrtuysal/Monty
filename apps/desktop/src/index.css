@@ -5,19 +5,19 @@
 }
 
 :root {
-  --bg-primary: #474747;
-  --bg-secondary: #474747;
-  --bg-card: #111111;
-  --bg-card-hover: #161616;
-  --primary: #6C63FF;
-  --primary-glow: rgba(108, 99, 255, 0.4);
-  --secondary: #FF6584;
-  --text-main: #ffffff;
-  --text-muted: #8E8E93;
-  --border: #2c2c2e;
-  --success: #32D74B;
+  --bg-primary: #0b1310;
+  --bg-secondary: #111c18;
+  --bg-card: #162520;
+  --bg-card-hover: #1e332c;
+  --primary: #10b981;
+  --primary-glow: rgba(16, 185, 129, 0.4);
+  --secondary: #f59e0b;
+  --text-main: #f0fdf4;
+  --text-muted: #86a397;
+  --border: #1e382d;
+  --success: #10b981;
   --error: #FF453A;
-  --warning: #ffcc00;
+  --warning: #f59e0b;
 
   --radius-lg: 20px;
   --radius-md: 12px;

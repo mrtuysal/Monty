@@ -111,6 +111,7 @@ function createWindow() {
         width: 1400,
         height: 900,
         backgroundColor: '#050505',
+        icon: path.join(__dirname, 'build', 'icon.ico'),
         webPreferences: {
             nodeIntegration: false,      // SECURITY: Renderer cannot access Node.js
             contextIsolation: true,      // SECURITY: Isolate preload from renderer

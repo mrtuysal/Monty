@@ -6,8 +6,9 @@ import { listBackups, downloadBackup, deleteBackup } from '../lib/backupService'
 import {
     FaUser, FaGoogle, FaApple, FaSave, FaCheckCircle,
     FaCloudUploadAlt, FaCloudDownloadAlt, FaTrash, FaCloud,
-    FaHistory, FaDownload, FaSync, FaDesktop, FaPowerOff
+    FaHistory, FaDownload, FaSync, FaDesktop, FaPowerOff, FaPalette
 } from 'react-icons/fa';
+import { THEMES, getSavedTheme, applyTheme } from '../lib/themeService';
 
 export default function Settings() {
     const {
@@ -32,6 +33,14 @@ export default function Settings() {
     // Updater states
     const [appVersion, setAppVersion] = useState('');
     const [updateStatus, setUpdateStatus] = useState({ status: 'idle', data: null });
+
+    // Theme state
+    const [currentTheme, setCurrentTheme] = useState(getSavedTheme());
+
+    const handleThemeSelect = (themeId) => {
+        setCurrentTheme(themeId);
+        applyTheme(themeId);
+    };
 
     // Load initial profile data
     useEffect(() => {
@@ -254,6 +263,79 @@ export default function Settings() {
             </div>
 
             <div style={{ maxWidth: '800px' }}>
+
+                {/* 🎨 Renk Paleti ve Temalar */}
+                <div className="glass-panel" style={sectionStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '15px' }}>
+                        <FaPalette size={20} color="var(--primary)" />
+                        <div>
+                            <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-main)' }}>Renk Paleti ve Görünüm</h2>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                                Uygulamanın renk tonunu ve atmosferini tarzınıza göre anında özelleştirin
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginTop: '10px' }}>
+                        {THEMES.map(theme => {
+                            const isSelected = currentTheme === theme.id;
+                            return (
+                                <div
+                                    key={theme.id}
+                                    onClick={() => handleThemeSelect(theme.id)}
+                                    style={{
+                                        background: isSelected ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                                        border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)',
+                                        borderRadius: '14px',
+                                        padding: '16px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: isSelected ? '0 0 16px var(--primary-glow)' : 'none',
+                                        position: 'relative',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'space-between'
+                                    }}
+                                >
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                {theme.preview.map((color, idx) => (
+                                                    <span
+                                                        key={idx}
+                                                        style={{
+                                                            width: '14px',
+                                                            height: '14px',
+                                                            borderRadius: '50%',
+                                                            backgroundColor: color,
+                                                            border: '1px solid rgba(255,255,255,0.2)',
+                                                            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                                                        }}
+                                                    />
+                                                ))}
+                                            </div>
+                                            {isSelected && (
+                                                <FaCheckCircle color="var(--primary)" size={16} />
+                                            )}
+                                        </div>
+                                        <h3 style={{ margin: '0 0 6px 0', fontSize: '0.95rem', fontWeight: 600, color: isSelected ? 'var(--primary)' : 'var(--text-main)' }}>
+                                            {theme.name}
+                                        </h3>
+                                        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.3' }}>
+                                            {theme.subtitle}
+                                        </p>
+                                    </div>
+                                    {isSelected && (
+                                        <div style={{ marginTop: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 600 }}>
+                                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--primary)' }} />
+                                            Aktif Tema
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
 
                 {/* 1. Profil Bilgileri */}
                 <div className="glass-panel" style={sectionStyle}>
