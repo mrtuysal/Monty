@@ -119,40 +119,6 @@
     padding-top: 20px;
 }
 
-.sidebar-version-badge {
-    margin: 12px 10px 0 10px;
-    padding: 6px 12px;
-    background: rgba(108, 99, 255, 0.12);
-    border: 1px solid rgba(108, 99, 255, 0.3);
-    border-radius: 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #c7d2fe;
-    letter-spacing: 0.5px;
-    user-select: none;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.sidebar-version-badge:hover {
-    background: rgba(108, 99, 255, 0.22);
-    border-color: rgba(108, 99, 255, 0.5);
-    color: #ffffff;
-    box-shadow: 0 0 12px rgba(108, 99, 255, 0.35);
-}
-
-.version-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #10b981;
-    box-shadow: 0 0 8px #10b981;
-    flex-shrink: 0;
-}
-
 .main-content {
     flex: 1;
     padding: 40px 50px;
@@ -199,12 +165,6 @@
         padding: 12px;
     }
 
-    .sidebar-version-badge {
-        padding: 6px 0;
-        text-align: center;
-        font-size: 0.65rem;
-    }
-
     .main-content {
         padding: 30px 20px;
         max-width: calc(100vw - 80px);
@@ -214,10 +174,6 @@
 @media (max-width: 600px) {
     .app-container {
         flex-direction: column;
-    }
-
-    .sidebar-version-badge {
-        display: none;
     }
 
     .sidebar {

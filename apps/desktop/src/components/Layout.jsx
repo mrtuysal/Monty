@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { FaHome, FaWallet, FaCreditCard, FaCog, FaHandshake } from 'react-icons/fa';
 import clsx from 'clsx';
 import pkg from '../../package.json';
+import montyLogo from '../assets/logo.png';
 import './Layout.css';
 
 const APP_VERSION = pkg?.version || '2.2.0';
@@ -40,7 +41,7 @@ export default function Layout({ children }) {
             <aside className="sidebar glass-panel">
                 <div className="logo-area">
                     <div className="logo-img-wrapper">
-                        <img src="/logo.png" alt="Monty Logo" className="logo-img" />
+                        <img src={montyLogo} alt="Monty Logo" className="logo-img" />
                     </div>
                     <h2>Monty</h2>
                 </div>
@@ -59,10 +60,6 @@ export default function Layout({ children }) {
                         label="Ayarlar"
                         sublabel={`v${version}`}
                     />
-                    <div className="sidebar-version-badge" title={`Monty Desktop v${version}`}>
-                        <span className="version-dot" />
-                        <span>v{version}</span>
-                    </div>
                 </div>
             </aside>
 
