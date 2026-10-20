@@ -456,6 +456,31 @@ export default function Receivables() {
                                 );
                             })}
                         </tbody>
+                        <tfoot>
+                            <tr style={{
+                                borderTop: '2px solid var(--primary)',
+                                borderBottom: '2px solid var(--primary)',
+                                background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)',
+                                fontWeight: 'bold'
+                            }}>
+                                <td colSpan="4" style={{ padding: '14px 15px', fontSize: '13px', color: 'var(--text-main)' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: '800' }}>
+                                        📊 LİSTE ALT TOPLAMI ({list.length} Kayıt)
+                                    </span>
+                                </td>
+                                <td style={{
+                                    padding: '14px 15px', textAlign: 'right', fontWeight: '800',
+                                    fontSize: '14px', whiteSpace: 'nowrap',
+                                    color: net >= 0 ? '#4caf50' : '#f44336'
+                                }}>
+                                    Net: {net >= 0 ? '+' : '-'}₺{fmt(Math.abs(net))}
+                                </td>
+                                <td style={{ padding: '14px 15px', textAlign: 'center', fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                                    {list.filter(x => x.status === 'DONE').length}/{list.length} Kapandı
+                                </td>
+                                <td style={{ padding: '14px 15px' }} />
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>

@@ -71,6 +71,22 @@ export default function PaymentsScreen() {
             .sort((a, b) => new Date(a.dueDate || 0) - new Date(b.dueDate || 0));
     }, [payments, filter]);
 
+    const totals = useMemo(() => {
+        let total = 0;
+        let paid = 0;
+        let pending = 0;
+        filteredPayments.forEach(p => {
+            const amt = parseFloat(p.amount) || 0;
+            total += amt;
+            if (p.status === 'PAID') {
+                paid += amt;
+            } else {
+                pending += amt;
+            }
+        });
+        return { total, paid, pending, count: filteredPayments.length };
+    }, [filteredPayments]);
+
     const handleSave = useCallback(async () => {
         if (!form.institution) {
             Alert.alert('Hata', 'Kurum adı gereklidir.');
@@ -268,6 +284,32 @@ export default function PaymentsScreen() {
                     </TouchableOpacity>
                 ))}
             </ScrollView>
+
+            {/* Toplam Özeti */}
+            <View style={{
+                flexDirection: 'row',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                marginHorizontal: Layout.screenPadding,
+                marginBottom: 10,
+                borderRadius: 12,
+                padding: 12,
+                justifyContent: 'space-between',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.08)'
+            }}>
+                <View>
+                    <Text style={{ color: Colors.textSecondary, fontSize: 11, textTransform: 'uppercase' }}>Toplam ({totals.count})</Text>
+                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: 'bold', marginTop: 2 }}>₺{totals.total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                </View>
+                <View style={{ alignItems: 'center' }}>
+                    <Text style={{ color: Colors.textSecondary, fontSize: 11, textTransform: 'uppercase' }}>Ödenen</Text>
+                    <Text style={{ color: '#4caf50', fontSize: 15, fontWeight: 'bold', marginTop: 2 }}>₺{totals.paid.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ color: Colors.textSecondary, fontSize: 11, textTransform: 'uppercase' }}>Kalan</Text>
+                    <Text style={{ color: '#ff9800', fontSize: 15, fontWeight: 'bold', marginTop: 2 }}>₺{totals.pending.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                </View>
+            </View>
 
             {/* List */}
             <FlatList

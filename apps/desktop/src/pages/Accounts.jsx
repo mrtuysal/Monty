@@ -142,9 +142,26 @@ export default function Accounts() {
     const institutionsOrder = [...new Set(accounts.map(a => a.institution))];
     const groups = institutionsOrder.map(inst => groupedAccounts[inst]);
 
+    // Overall Totals across all accounts and institutions
+    const overallTotals = React.useMemo(() => {
+        const balances = {};
+        const availables = {};
+        (accounts || []).forEach(acc => {
+            const curr = acc.currency || 'TRY';
+            balances[curr] = (balances[curr] || 0) + (parseFloat(acc.balance) || 0);
+            availables[curr] = (availables[curr] || 0) + (parseFloat(acc.available) || 0);
+        });
+        return {
+            balances,
+            availables,
+            accountCount: (accounts || []).length,
+            institutionCount: groups.length
+        };
+    }, [accounts, groups]);
+
     const formatCurrency = (amount, currency) => {
         const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₺';
-        return `${symbol} ${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `${symbol} ${(amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
     const handleDeleteAccount = (id) => {
@@ -329,7 +346,7 @@ export default function Accounts() {
     return (
         <Layout>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h1 className="gradient-text" style={{ fontSize: '2.5rem', margin: 0 }}>Hesaplar</h1>
                 <button
                     className="btn btn-primary"
@@ -340,6 +357,62 @@ export default function Accounts() {
                 >
                     + Ana Hesap Ekle
                 </button>
+            </div>
+
+            {/* Varlıklar Genel Toplamları ve Özeti */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '12px',
+                marginBottom: '25px'
+            }}>
+                <div className="glass-panel" style={{ padding: '16px 20px', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--primary)' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Genel Varlık Toplamı</span>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#fff', marginTop: '4px' }}>
+                        {formatCurrency(overallTotals.balances['TRY'] || 0, 'TRY')}
+                    </div>
+                    {Object.keys(overallTotals.balances).filter(c => c !== 'TRY').length > 0 && (
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                            {Object.keys(overallTotals.balances).filter(c => c !== 'TRY').map(curr => (
+                                <span key={curr} style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                                    {formatCurrency(overallTotals.balances[curr], curr)}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="glass-panel" style={{ padding: '16px 20px', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--success, #10b981)' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Toplam Kullanılabilir</span>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--success, #10b981)', marginTop: '4px' }}>
+                        {formatCurrency(overallTotals.availables['TRY'] || 0, 'TRY')}
+                    </div>
+                    {Object.keys(overallTotals.availables).filter(c => c !== 'TRY').length > 0 && (
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                            {Object.keys(overallTotals.availables).filter(c => c !== 'TRY').map(curr => (
+                                <span key={curr} style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                                    {formatCurrency(overallTotals.availables[curr], curr)}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="glass-panel" style={{ padding: '16px 20px', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--text-muted)' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Kayıtlı Kurumlar</span>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--text-main)', marginTop: '4px' }}>
+                        {overallTotals.institutionCount} Kurum
+                    </div>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Banka ve Nakit Kasaları</span>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '16px 20px', borderRadius: 'var(--radius-md)', borderLeft: '4px solid #6366f1' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Toplam Alt Hesap</span>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#6366f1', marginTop: '4px' }}>
+                        {overallTotals.accountCount} Hesap
+                    </div>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Aktif hesap sayısı</span>
+                </div>
             </div>
 
             <DragDropContext onDragEnd={onDragEnd}>
@@ -626,6 +699,37 @@ export default function Accounts() {
                                                     </div>
                                                 )}
                                             </Droppable>
+
+                                            {/* Kurum Alt Toplamı Footer */}
+                                            <div style={{
+                                                padding: '12px 25px',
+                                                background: 'rgba(255, 255, 255, 0.03)',
+                                                borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                fontSize: '12.5px',
+                                                borderBottomLeftRadius: 'var(--radius-lg)',
+                                                borderBottomRightRadius: 'var(--radius-lg)'
+                                            }}>
+                                                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>
+                                                    ↳ {group.institution} Alt Toplamı ({group.accounts.length} hesap)
+                                                </span>
+                                                <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                                    {Object.keys(group.totalBalance).map(curr => (
+                                                        <div key={curr} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                            <span style={{ color: group.totalBalance[curr] >= 0 ? '#4caf50' : '#f44336', fontWeight: 'bold' }}>
+                                                                Bakiye: {formatCurrency(group.totalBalance[curr], curr)}
+                                                            </span>
+                                                            {group.totalAvailable[curr] !== group.totalBalance[curr] && (
+                                                                <span style={{ color: 'var(--text-muted)' }}>
+                                                                    Kullanılabilir: {formatCurrency(group.totalAvailable[curr], curr)}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                 </Draggable>
