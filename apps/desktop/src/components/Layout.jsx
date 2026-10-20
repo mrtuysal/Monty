@@ -7,13 +7,16 @@ import './Layout.css';
 
 const APP_VERSION = pkg?.version || '2.2.0';
 
-const SidebarItem = ({ to, icon, label }) => (
+const SidebarItem = ({ to, icon, label, sublabel }) => (
     <NavLink
         to={to}
-        className={({ isActive }) => clsx('sidebar-item', isActive && 'active')}
+        className={({ isActive }) => clsx('sidebar-item', isActive && 'active', sublabel && 'has-sublabel')}
     >
         {icon}
-        <span>{label}</span>
+        <div className="sidebar-item-text">
+            <span>{label}</span>
+            {sublabel && <span className="sidebar-item-sublabel">{sublabel}</span>}
+        </div>
     </NavLink>
 );
 
@@ -48,7 +51,12 @@ export default function Layout({ children }) {
                 </nav>
 
                 <div className="settings-area">
-                    <SidebarItem to="/settings" icon={<FaCog />} label="Ayarlar" />
+                    <SidebarItem
+                        to="/settings"
+                        icon={<FaCog />}
+                        label="Ayarlar"
+                        sublabel={`v${version}`}
+                    />
                     <div className="sidebar-version-badge" title={`Monty Desktop v${version}`}>
                         <span className="version-dot" />
                         <span>v{version}</span>

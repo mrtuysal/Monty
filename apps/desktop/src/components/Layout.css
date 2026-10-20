@@ -82,6 +82,25 @@
     flex-shrink: 0;
 }
 
+.sidebar-item-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.25;
+}
+
+.sidebar-item-sublabel {
+    font-size: 0.70rem;
+    font-weight: 600;
+    color: #818cf8;
+    letter-spacing: 0.4px;
+    margin-top: 2px;
+}
+
+.sidebar-item.active .sidebar-item-sublabel {
+    color: var(--primary);
+}
+
 .settings-area {
     border-top: 1px solid var(--border);
     padding-top: 20px;
