@@ -6,19 +6,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useData } from '../context/DataContext';
 
 export default function DashboardScreen({ navigation }) {
-    const { accounts, payments, userProfile, session, formatMoney, dataLoading } = useData();
+    const { accounts, payments, receivables, userProfile, session, formatMoney, dataLoading, convertToTRY } = useData();
 
     const financials = useMemo(() => {
         let total = 0, cash = 0, bank = 0;
         accounts.forEach(acc => {
-            let amount = acc.balance || 0;
-            if (acc.currency === 'USD') amount *= 32;
-            total += amount;
-            if (acc.type === 'CASH') cash += amount;
-            else bank += amount;
+            const amountInTRY = convertToTRY ? convertToTRY(acc.balance, acc.currency) : (acc.balance || 0);
+            total += amountInTRY;
+            if (acc.type === 'CASH') cash += amountInTRY;
+            else bank += amountInTRY;
         });
         return { total, cash, bank };
-    }, [accounts]);
+    }, [accounts, convertToTRY]);
 
     const upcomingPayments = useMemo(() => {
         return [...payments]
@@ -32,6 +31,18 @@ export default function DashboardScreen({ navigation }) {
             .filter(p => p.status !== 'PAID')
             .reduce((sum, p) => sum + (p.amount || 0), 0);
     }, [payments]);
+
+    const recSummary = useMemo(() => {
+        let rec = 0, debt = 0;
+        (receivables || []).forEach(r => {
+            if (r.status !== 'DONE') {
+                const a = parseFloat(r.amount) || 0;
+                if (r.type === 'RECEIVABLE') rec += a;
+                else if (r.type === 'DEBT') debt += a;
+            }
+        });
+        return { rec, debt, net: rec - debt };
+    }, [receivables]);
 
     const userName = userProfile.fullName || session?.user?.user_metadata?.full_name || 'Kullanıcı';
 
@@ -91,6 +102,29 @@ export default function DashboardScreen({ navigation }) {
                     </View>
                 </View>
 
+                {/* Receivables & Debt Summary Card */}
+                <TouchableOpacity
+                    style={[styles.section, { padding: 16, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 16 }]}
+                    onPress={() => navigation.navigate('Alacak/Borç')}
+                >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(108,99,255,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="people" size={20} color={Colors.primary} />
+                            </View>
+                            <View>
+                                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>Alacak / Borç Dengesi</Text>
+                                <Text style={{ color: Colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                                    Net: <Text style={{ color: recSummary.net >= 0 ? Colors.success : Colors.error, fontWeight: '600' }}>
+                                        {recSummary.net >= 0 ? '+' : '-'}₺ {formatMoney(Math.abs(recSummary.net))}
+                                    </Text>
+                                </Text>
+                            </View>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+                    </View>
+                </TouchableOpacity>
+
                 {/* Quick Actions */}
                 <View style={styles.section}>
                     <Text style={Typography.h2}>Hızlı İşlemler</Text>
@@ -109,11 +143,11 @@ export default function DashboardScreen({ navigation }) {
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={styles.actionButton}
-                            onPress={() => navigation.navigate('Hesaplar')}
+                            onPress={() => navigation.navigate('Alacak/Borç')}
                         >
                             <View style={styles.actionSecondary}>
-                                <Ionicons name="wallet-outline" size={20} color={Colors.primary} />
-                                <Text style={[styles.actionText, { color: Colors.primary }]}>Hesaplar</Text>
+                                <Ionicons name="people-outline" size={20} color={Colors.primary} />
+                                <Text style={[styles.actionText, { color: Colors.primary }]}>Alacak/Borç</Text>
                             </View>
                         </TouchableOpacity>
                     </View>

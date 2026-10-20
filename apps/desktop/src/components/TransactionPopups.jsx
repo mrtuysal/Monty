@@ -64,10 +64,9 @@ export default function TransactionPopups({
 
     const handleAmountChange = (e) => {
         let val = e.target.value;
-        if (val.includes('-')) {
-            setIsNegative(true);
-            val = val.replace('-', '');
-        }
+        const hasMinus = val.includes('-');
+        setIsNegative(hasMinus);
+        val = val.replace(/-/g, '');
         const formatted = formatMoneyInput(val);
         setAmount(formatted);
     };

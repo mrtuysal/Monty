@@ -11,6 +11,7 @@ import { useData } from '../context/DataContext';
 import DashboardScreen from '../screens/DashboardScreen';
 import PaymentsScreen from '../screens/PaymentsScreen';
 import AccountsScreen from '../screens/AccountsScreen';
+import ReceivablesScreen from '../screens/ReceivablesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import LoginScreen from '../screens/LoginScreen';
 
@@ -35,15 +36,17 @@ function MainTabs() {
                     if (route.name === 'Ana Sayfa') iconName = focused ? 'home' : 'home-outline';
                     else if (route.name === 'Ödemeler') iconName = focused ? 'card' : 'card-outline';
                     else if (route.name === 'Hesaplar') iconName = focused ? 'wallet' : 'wallet-outline';
+                    else if (route.name === 'Alacak/Borç') iconName = focused ? 'people' : 'people-outline';
                     else if (route.name === 'Ayarlar') iconName = focused ? 'settings' : 'settings-outline';
                     return <Ionicons name={iconName} size={22} color={color} />;
                 },
-                tabBarLabelStyle: { fontSize: 11 },
+                tabBarLabelStyle: { fontSize: 10 },
             })}
         >
             <Tab.Screen name="Ana Sayfa" component={DashboardScreen} />
             <Tab.Screen name="Ödemeler" component={PaymentsScreen} />
             <Tab.Screen name="Hesaplar" component={AccountsScreen} />
+            <Tab.Screen name="Alacak/Borç" component={ReceivablesScreen} />
             <Tab.Screen name="Ayarlar" component={SettingsScreen} />
         </Tab.Navigator>
     );

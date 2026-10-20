@@ -29,7 +29,7 @@ const initialForm = {
 };
 
 export default function AccountsScreen() {
-    const { accounts, addAccount, deleteAccount, formatMoney } = useData();
+    const { accounts, addAccount, deleteAccount, formatMoney, convertToTRY } = useData();
     const [modalVisible, setModalVisible] = useState(false);
     const [form, setForm] = useState(initialForm);
 
@@ -46,12 +46,10 @@ export default function AccountsScreen() {
 
     const totalBalance = useMemo(() => {
         return accounts.reduce((sum, acc) => {
-            let amount = acc.balance || 0;
-            if (acc.currency === 'USD') amount *= 32;
-            if (acc.currency === 'EUR') amount *= 35;
+            const amount = convertToTRY ? convertToTRY(acc.balance, acc.currency) : (acc.balance || 0);
             return sum + amount;
         }, 0);
-    }, [accounts]);
+    }, [accounts, convertToTRY]);
 
     const handleSave = useCallback(async () => {
         if (!form.institution) {

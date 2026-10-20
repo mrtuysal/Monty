@@ -21,6 +21,7 @@ import {
     DEFAULT_NOTIFICATION_PREFS,
 } from '../services/NotificationService';
 import { checkForUpdates } from '../services/UpdateService';
+import { fetchTCMBRates, convertToTRY as convertToTRYHelper, DEFAULT_RATES } from '../services/CurrencyService';
 
 const DataContext = createContext();
 
@@ -36,7 +37,16 @@ export function DataProvider({ children }) {
     const [dataLoading, setDataLoading] = useState(false);
     const [accounts, setAccounts] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [receivables, setReceivables] = useState([]);
     const [userProfile, setUserProfile] = useState({});
+    const [currencyRates, setCurrencyRates] = useState(DEFAULT_RATES);
+
+    // Fetch TCMB daily rates on mount
+    useEffect(() => {
+        fetchTCMBRates().then(rates => {
+            if (rates) setCurrencyRates(rates);
+        }).catch(err => console.warn('Could not load TCMB rates on mobile:', err));
+    }, []);
 
     // Notification tracking
     const notifSentTracker = useRef({});
@@ -57,6 +67,7 @@ export function DataProvider({ children }) {
             } else {
                 setAccounts([]);
                 setPayments([]);
+                setReceivables([]);
                 setUserProfile({});
             }
         });
@@ -83,6 +94,11 @@ export function DataProvider({ children }) {
 
             const { data: payData } = await supabase.from('payments').select('*').eq('user_id', userId);
             setPayments((payData || []).map(mapPaymentFromDB));
+
+            const { data: recData, error: recError } = await supabase.from('receivables').select('*').eq('user_id', userId);
+            if (!recError) {
+                setReceivables(recData || []);
+            }
 
             const { data: profData } = await supabase.from('profiles').select('*').eq('id', userId).single();
             if (profData) {
@@ -316,8 +332,77 @@ export function DataProvider({ children }) {
     const deleteAccount = useCallback(async (id) => {
         const { error } = await supabase.from('accounts').delete().eq('id', id);
         if (error) { console.error('Delete account error:', error); return; }
-        setAccounts(prev => prev.filter(a => a.id !== id));
+        setAccounts(prev => prev.map ? prev.filter(a => a.id !== id) : []);
     }, []);
+
+    // -- Receivables CRUD --
+    const addReceivable = useCallback(async (item) => {
+        const tempId = 'temp_' + Date.now();
+        const withId = { ...item, id: tempId, created_at: new Date().toISOString() };
+        setReceivables(prev => [...prev, withId]);
+
+        if (session?.user) {
+            try {
+                const { data, error } = await supabase.from('receivables').insert([{
+                    user_id: session.user.id,
+                    type: item.type,
+                    person: item.person,
+                    description: item.description || '',
+                    amount: item.amount,
+                    paid_amount: item.paidAmount || 0,
+                    status: item.status || 'PENDING',
+                    date: item.date || new Date().toISOString().split('T')[0],
+                    due_date: item.dueDate || null,
+                    notes: item.notes || ''
+                }]).select().single();
+
+                if (error) {
+                    console.warn('Receivables table error (kept locally):', error);
+                } else if (data) {
+                    setReceivables(prev => prev.map(r => r.id === tempId ? data : r));
+                }
+            } catch (err) {
+                console.warn('Receivable insert error:', err);
+            }
+        }
+    }, [session]);
+
+    const updateReceivable = useCallback(async (id, updates) => {
+        setReceivables(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+
+        if (session?.user) {
+            try {
+                const dbUpdates = { updated_at: new Date() };
+                if (updates.type !== undefined) dbUpdates.type = updates.type;
+                if (updates.person !== undefined) dbUpdates.person = updates.person;
+                if (updates.description !== undefined) dbUpdates.description = updates.description;
+                if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
+                if (updates.paidAmount !== undefined) dbUpdates.paid_amount = updates.paidAmount;
+                if (updates.status !== undefined) dbUpdates.status = updates.status;
+                if (updates.date !== undefined) dbUpdates.date = updates.date;
+                if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
+                if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+
+                const { data, error } = await supabase.from('receivables').update(dbUpdates).eq('id', id).select().single();
+                if (error) console.error('Update receivable error:', error);
+                else if (data) setReceivables(prev => prev.map(r => r.id === id ? data : r));
+            } catch (err) {
+                console.error('Update receivable error:', err);
+            }
+        }
+    }, [session]);
+
+    const deleteReceivable = useCallback(async (id) => {
+        setReceivables(prev => prev.filter(r => r.id !== id));
+        if (session?.user) {
+            try {
+                const { error } = await supabase.from('receivables').delete().eq('id', id);
+                if (error) console.error('Delete receivable error:', error);
+            } catch (err) {
+                console.error('Delete receivable error:', err);
+            }
+        }
+    }, [session]);
 
     // -- Sign Out --
     const signOut = useCallback(async () => {
@@ -325,6 +410,7 @@ export function DataProvider({ children }) {
         setSession(null);
         setAccounts([]);
         setPayments([]);
+        setReceivables([]);
         setUserProfile({});
     }, []);
 
@@ -338,10 +424,13 @@ export function DataProvider({ children }) {
 
     const value = {
         session, authLoading, dataLoading,
-        accounts, payments, userProfile,
+        accounts, payments, receivables, userProfile,
         addPayment, updatePayment, deletePayment,
         addAccount, updateAccount, deleteAccount,
+        addReceivable, updateReceivable, deleteReceivable,
         updateUserProfile, signOut, fetchData, formatMoney,
+        currencyRates,
+        convertToTRY: (amount, currency) => convertToTRYHelper(amount, currency, currencyRates),
     };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

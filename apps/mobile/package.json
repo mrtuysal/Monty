@@ -1,6 +1,6 @@
 {
   "name": "monty-mobile",
-  "version": "2.0.0",
+  "version": "2.2.0",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.1.2",
-    "@react-native-community/datetimepicker": "^8.6.0",
+    "@react-native-community/datetimepicker": "8.4.4",
     "@react-navigation/bottom-tabs": "^7.14.0",
     "@react-navigation/native": "^7.1.28",
     "@supabase/supabase-js": "^2.97.0",
@@ -21,7 +21,8 @@
     "expo-notifications": "~0.32.16",
     "expo-status-bar": "~3.0.9",
     "expo-web-browser": "~15.0.6",
-    "react": "19.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "react-native": "0.81.5",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-safe-area-context": "~5.6.0",

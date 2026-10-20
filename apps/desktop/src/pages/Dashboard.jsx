@@ -6,7 +6,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
-    const { accounts, payments, receivables, dataLoading } = useData();
+    const { accounts, payments, receivables, dataLoading, convertToTRY } = useData();
     const navigate = useNavigate();
     const [selectedCategory, setSelectedCategory] = useState(null); // 'CREDIT_CARD', 'BILL', 'OTHER'
 
@@ -45,6 +45,14 @@ export default function Dashboard() {
         });
         return totals;
     }, [accounts]);
+
+    // Calculate Consolidated TRY Value via TCMB Rates
+    const consolidatedTRYAssets = useMemo(() => {
+        return accounts.reduce((sum, acc) => {
+            const val = convertToTRY ? convertToTRY(acc.balance, acc.currency) : acc.balance;
+            return sum + (val || 0);
+        }, 0);
+    }, [accounts, convertToTRY]);
 
     // Receivables Summary
     const receivableStats = useMemo(() => {
@@ -185,6 +193,11 @@ export default function Dashboard() {
                                 {formatCurrency(amount, curr)}
                             </div>
                         ))}
+                        {Object.keys(totalAssets).some(c => c !== 'TRY') && (
+                            <div style={{ fontSize: '0.85rem', color: '#4caf50', marginTop: '4px', fontWeight: '500' }}>
+                                ≈ ₺ {consolidatedTRYAssets.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (TCMB)
+                            </div>
+                        )}
                     </div>
 
                     <div style={{ color: 'var(--text-muted)', marginLeft: '15px' }}>

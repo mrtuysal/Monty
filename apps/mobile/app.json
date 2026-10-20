@@ -2,7 +2,7 @@
   "expo": {
     "name": "Monty",
     "slug": "monty-mobile",
-    "version": "2.0.0",
+    "version": "2.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -33,6 +33,9 @@
         "projectId": "8d5dadee-bbd7-4980-8d97-e8f0ac334b0c"
       }
     },
-    "owner": "indicmindic"
+    "owner": "indicmindic",
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ]
   }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    TextInput, Modal, Alert, FlatList, Platform
+    TextInput, Modal, Alert, FlatList, Platform, Switch
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,6 +23,13 @@ const STATUS_MAP = {
     OVERDUE: { label: 'Gecikmiş', color: Colors.error },
 };
 
+const FREQUENCIES = [
+    { key: 'WEEKLY', label: 'Haftalık' },
+    { key: 'MONTHLY', label: 'Aylık' },
+    { key: 'QUARTERLY', label: '3 Aylık' },
+    { key: 'YEARLY', label: 'Yıllık' },
+];
+
 const initialForm = {
     type: 'CREDIT_CARD',
     institution: '',
@@ -32,6 +39,7 @@ const initialForm = {
     statementDate: '',
     status: 'PENDING',
     isRecurring: false,
+    recurringFrequency: 'MONTHLY'
 };
 
 export default function PaymentsScreen() {
@@ -99,6 +107,7 @@ export default function PaymentsScreen() {
             statementDate: payment.statementDate || '',
             status: payment.status || 'PENDING',
             isRecurring: payment.isRecurring || false,
+            recurringFrequency: payment.recurringFrequency || 'MONTHLY',
         });
         setEditingId(payment.id);
         setModalVisible(true);
@@ -362,6 +371,35 @@ export default function PaymentsScreen() {
                                         </View>
                                     </TouchableOpacity>
                                 </>
+                            )}
+
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20 }}>
+                                <Text style={[styles.label, { marginTop: 0, marginBottom: 0 }]}>Tekrarlayan Düzenli Ödeme</Text>
+                                <Switch
+                                    value={form.isRecurring}
+                                    onValueChange={(val) => setForm({ ...form, isRecurring: val })}
+                                    trackColor={{ false: Colors.surface, true: Colors.primary }}
+                                    thumbColor="#fff"
+                                />
+                            </View>
+
+                            {form.isRecurring && (
+                                <View style={{ marginTop: 15 }}>
+                                    <View style={styles.typeRow}>
+                                        {FREQUENCIES.map(f => (
+                                            <TouchableOpacity
+                                                key={f.key}
+                                                style={[styles.typeChip, form.recurringFrequency === f.key && styles.typeChipActive]}
+                                                onPress={() => setForm({ ...form, recurringFrequency: f.key })}
+                                            >
+                                                <Text style={[
+                                                    styles.typeChipText,
+                                                    form.recurringFrequency === f.key && { color: '#fff' }
+                                                ]}>{f.label}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
                             )}
 
                             <TouchableOpacity onPress={handleSave} style={{ marginTop: 10 }}>

@@ -31,3 +31,16 @@ yarn-error.log*
 
 # Local cloud storage (mock data)
 local_cloud_storage/
+
+# Local backups
+backups/
+
+# Debug and build logs
+*_log.txt
+*.log
+dns_extracted.txt
+extracted.txt
+
+# Third-party credentials & services documentation
+Thirdparty.txt
+

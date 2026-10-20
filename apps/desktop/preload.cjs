@@ -38,5 +38,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     isElectron: true,
 
     // Platform info
-    platform: process.platform
+    platform: process.platform,
+
+    // TCMB Currency Rates
+    getCurrencyRates: () => ipcRenderer.invoke('get-currency-rates')
 });

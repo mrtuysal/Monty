@@ -137,7 +137,7 @@ function createWindow() {
             .catch(e => {
                 mainWindow.loadURL('http://localhost:3000')
                     .catch(e2 => {
-                        const filePath = path.join(__dirname, '..', 'dist', 'index.html');
+                        const filePath = path.join(__dirname, 'dist', 'index.html');
                         mainWindow.loadFile(filePath);
                     });
             });
@@ -264,6 +264,41 @@ ipcMain.handle('show-notification', (event, { title, body }) => {
         return { success: true };
     }
     return { success: false, error: 'Notifications not supported' };
+});
+
+// TCMB Daily Currency Rates (Efektif Satış / Banknote Selling)
+ipcMain.handle('get-currency-rates', async () => {
+    try {
+        const response = await fetch('https://www.tcmb.gov.tr/kurlar/today.xml');
+        if (!response.ok) throw new Error(`TCMB HTTP error: ${response.status}`);
+        const xmlText = await response.text();
+
+        const currencies = ['USD', 'EUR', 'GBP'];
+        const rates = { TRY: 1 };
+
+        for (const code of currencies) {
+            // Priority 1: BanknoteSelling (Efektif Satış)
+            const bRe = new RegExp(`<Currency[^>]+Kod="${code}"[\\s\\S]*?<BanknoteSelling>([^<]*)<`, 'i');
+            const bMatch = xmlText.match(bRe);
+            let val = bMatch && bMatch[1] ? parseFloat(bMatch[1].replace(',', '.')) : null;
+
+            // Priority 2: ForexSelling (Döviz Satış - fallback)
+            if (!val) {
+                const fRe = new RegExp(`<Currency[^>]+Kod="${code}"[\\s\\S]*?<ForexSelling>([^<]*)<`, 'i');
+                const fMatch = xmlText.match(fRe);
+                val = fMatch && fMatch[1] ? parseFloat(fMatch[1].replace(',', '.')) : null;
+            }
+
+            if (val && !isNaN(val)) {
+                rates[code] = val;
+            }
+        }
+
+        return { success: true, rates, fetchedAt: new Date().toISOString() };
+    } catch (err) {
+        console.error('TCMB rates fetch error in main:', err);
+        return { success: false, error: err.message };
+    }
 });
 
 // ── Update IPC Handlers ──

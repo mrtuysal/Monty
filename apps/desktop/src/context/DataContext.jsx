@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { mapPaymentFromDB, mapPaymentToDB, mapAccountFromDB, mapAccountToDB } from '../lib/mappers';
+import { fetchTCMBRates, convertToTRY as convertToTRYHelper, DEFAULT_RATES } from '../lib/currencyService';
 
 const DataContext = createContext();
 
@@ -20,6 +21,14 @@ export function DataProvider({ children }) {
     const [userProfile, setUserProfile] = useState({});
     const [session, setSession] = useState(null);
     const [authLoading, setAuthLoading] = useState(true);
+    const [currencyRates, setCurrencyRates] = useState(DEFAULT_RATES);
+
+    // Fetch TCMB daily rates on mount
+    useEffect(() => {
+        fetchTCMBRates().then(rates => {
+            if (rates) setCurrencyRates(rates);
+        }).catch(err => console.warn('Could not load TCMB rates:', err));
+    }, []);
 
     // Backup Overlay State - Moved to top to fix ReferenceError
     const [isBackupActive, setIsBackupActive] = useState(false);
@@ -197,7 +206,7 @@ export function DataProvider({ children }) {
                     notes: item.notes || ''
                 }]).select().single();
                 if (error) {
-                    console.warn('Receivables table may not exist yet. Data kept locally.', err);
+                    console.warn('Receivables table may not exist yet. Data kept locally.', error);
                     // Do NOT revert — record stays visible locally
                 } else {
                     setReceivables(prev => prev.map(r =>
@@ -332,7 +341,7 @@ export function DataProvider({ children }) {
     // Backup Logic — Supabase Storage Cloud Backup
     const backupIntervalRef = useRef(null);
 
-    const performBackup = async (showOverlay = true) => {
+    const performBackup = useCallback(async (showOverlay = true) => {
         if (showOverlay) {
             setIsBackupActive(true);
             setBackupProgress(0);
@@ -358,7 +367,8 @@ export function DataProvider({ children }) {
                 date: new Date().toISOString(),
                 profile: userProfile,
                 accounts: accounts,
-                payments: payments
+                payments: payments,
+                receivables: receivables
             };
 
             // Wait for progress animation to reach 90%
@@ -398,7 +408,7 @@ export function DataProvider({ children }) {
             setBackupProgress(0);
             return { success: false, error: e.message };
         }
-    };
+    }, [userProfile, accounts, payments, receivables, session]);
 
     // Download a local copy of the backup (export as .json file)
     const downloadBackupLocal = () => {
@@ -408,7 +418,8 @@ export function DataProvider({ children }) {
                 date: new Date().toISOString(),
                 profile: userProfile,
                 accounts: accounts,
-                payments: payments
+                payments: payments,
+                receivables: receivables
             };
 
             const dataStr = JSON.stringify(backupData, null, 2);
@@ -435,6 +446,7 @@ export function DataProvider({ children }) {
 
         setAccounts(backupData.accounts || []);
         setPayments(backupData.payments || []);
+        setReceivables(backupData.receivables || []);
         if (backupData.profile) {
             updateUserProfile(backupData.profile);
         }
@@ -551,9 +563,34 @@ export function DataProvider({ children }) {
         ...(userProfile.notificationPrefs || {})
     });
 
+    // Startup alert flag to prevent repeating alerts when payments list updates
+    const startupAlertFiredRef = useRef(false);
+
+    // Startup alerts (runs once per session, 8s after payments load)
+    useEffect(() => {
+        if (payments.length === 0 || startupAlertFiredRef.current) return;
+        const prefs = getNotifPrefs();
+        if (!prefs.startupAlert) return;
+
+        startupAlertFiredRef.current = true;
+        const startupTimeout = setTimeout(async () => {
+            try {
+                const ns = await import('../lib/notificationService');
+                const msgs = ns.buildStartupAlert(payments);
+                for (const msg of msgs) {
+                    await ns.sendNotification(msg.title, msg.body);
+                }
+            } catch (err) {
+                console.error('Startup alert failed:', err);
+            }
+        }, 8000);
+
+        return () => clearTimeout(startupTimeout);
+    }, [payments.length > 0]);
+
+    // Periodic check every 5 minutes
     useEffect(() => {
         const prefs = getNotifPrefs();
-        // If ALL are disabled, skip
         if (Object.values(prefs).every(v => v === false)) return;
 
         const runChecks = async () => {
@@ -623,27 +660,10 @@ export function DataProvider({ children }) {
             }
         };
 
-        // Startup alerts (runs once, 8s after mount)
-        const startupTimeout = setTimeout(async () => {
-            if (!prefs.startupAlert) return;
-            try {
-                const ns = await import('../lib/notificationService');
-                const msgs = ns.buildStartupAlert(payments);
-                for (const msg of msgs) {
-                    await ns.sendNotification(msg.title, msg.body);
-                }
-            } catch (err) {
-                console.error('Startup alert failed:', err);
-            }
-        }, 8000);
-
-        // Periodic check every 5 minutes
         const interval = setInterval(runChecks, 5 * 60 * 1000);
-        // Also run immediately (except startup alerts which have their own timer)
         runChecks();
 
         return () => {
-            clearTimeout(startupTimeout);
             clearInterval(interval);
         };
     }, [payments, userProfile.notificationPrefs]);
@@ -709,6 +729,8 @@ export function DataProvider({ children }) {
         isBackupActive,
         backupProgress,
         dataLoading,
+        currencyRates,
+        convertToTRY: (amount, currency) => convertToTRYHelper(amount, currency, currencyRates),
         // Supabase Exports
         session,
         authLoading,
