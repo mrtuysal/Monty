@@ -5,6 +5,8 @@ import clsx from 'clsx';
 import pkg from '../../package.json';
 import './Layout.css';
 
+const APP_VERSION = pkg?.version || '2.2.0';
+
 const SidebarItem = ({ to, icon, label }) => (
     <NavLink
         to={to}
@@ -16,7 +18,7 @@ const SidebarItem = ({ to, icon, label }) => (
 );
 
 export default function Layout({ children }) {
-    const [version, setVersion] = useState(pkg.version || '2.2.0');
+    const [version, setVersion] = useState(APP_VERSION);
 
     useEffect(() => {
         if (window.electronAPI?.getAppVersion) {
@@ -48,7 +50,8 @@ export default function Layout({ children }) {
                 <div className="settings-area">
                     <SidebarItem to="/settings" icon={<FaCog />} label="Ayarlar" />
                     <div className="sidebar-version-badge" title={`Monty Desktop v${version}`}>
-                        v{version}
+                        <span className="version-dot" />
+                        <span>v{version}</span>
                     </div>
                 </div>
             </aside>

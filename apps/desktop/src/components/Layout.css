@@ -88,19 +88,37 @@
 }
 
 .sidebar-version-badge {
-    padding: 8px 15px 0 15px;
-    font-size: 0.72rem;
+    margin: 12px 10px 0 10px;
+    padding: 6px 12px;
+    background: rgba(108, 99, 255, 0.12);
+    border: 1px solid rgba(108, 99, 255, 0.3);
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
     font-weight: 600;
+    color: #c7d2fe;
     letter-spacing: 0.5px;
-    color: var(--text-muted);
-    opacity: 0.65;
-    transition: opacity 0.2s ease, color 0.2s ease;
     user-select: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .sidebar-version-badge:hover {
-    opacity: 1;
-    color: var(--primary);
+    background: rgba(108, 99, 255, 0.22);
+    border-color: rgba(108, 99, 255, 0.5);
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(108, 99, 255, 0.35);
+}
+
+.version-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    flex-shrink: 0;
 }
 
 .main-content {
