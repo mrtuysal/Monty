@@ -9,6 +9,11 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Colors, Typography, Layout } from '../constants/Theme';
 import { useData } from '../context/DataContext';
+import {
+    getNextRecurringPayment,
+    parseRecurringConfig,
+    encodeRecurringConfig
+} from '../services/recurringPaymentService';
 
 const PAYMENT_TYPES = [
     { key: 'CREDIT_CARD', label: 'Kredi Kartı', emoji: '💳' },
@@ -39,7 +44,9 @@ const initialForm = {
     statementDate: '',
     status: 'PENDING',
     isRecurring: false,
-    recurringFrequency: 'MONTHLY'
+    recurringFrequency: 'MONTHLY',
+    recurringType: 'INFINITE',
+    recurringTotalCount: '12',
 };
 
 export default function PaymentsScreen() {
@@ -97,16 +104,25 @@ export default function PaymentsScreen() {
             return;
         }
 
+        const recurringFrequency = form.isRecurring
+            ? encodeRecurringConfig({
+                frequency: form.recurringFrequency || 'MONTHLY',
+                type: form.recurringType || 'INFINITE',
+                totalCount: parseInt(form.recurringTotalCount, 10) || 12,
+                currentIndex: 1
+            })
+            : (form.recurringFrequency || 'MONTHLY');
+
+        const paymentData = {
+            ...form,
+            amount: parseFloat(form.amount) || 0,
+            recurringFrequency
+        };
+
         if (editingId) {
-            await updatePayment(editingId, {
-                ...form,
-                amount: parseFloat(form.amount) || 0,
-            });
+            await updatePayment(editingId, paymentData);
         } else {
-            await addPayment({
-                ...form,
-                amount: parseFloat(form.amount) || 0,
-            });
+            await addPayment(paymentData);
         }
         setForm(initialForm);
         setEditingId(null);
@@ -114,6 +130,7 @@ export default function PaymentsScreen() {
     }, [form, addPayment, updatePayment, editingId]);
 
     const handleEdit = useCallback((payment) => {
+        const parsedRec = parseRecurringConfig(payment.recurringFrequency);
         setForm({
             type: payment.type || 'CREDIT_CARD',
             institution: payment.institution || '',
@@ -123,49 +140,21 @@ export default function PaymentsScreen() {
             statementDate: payment.statementDate || '',
             status: payment.status || 'PENDING',
             isRecurring: payment.isRecurring || false,
-            recurringFrequency: payment.recurringFrequency || 'MONTHLY',
+            recurringFrequency: parsedRec.frequency || 'MONTHLY',
+            recurringType: parsedRec.type || 'INFINITE',
+            recurringTotalCount: (parsedRec.totalCount || 12).toString(),
         });
         setEditingId(payment.id);
         setModalVisible(true);
     }, []);
-
-    const addPeriod = (dateStr, freq) => {
-        if (!dateStr) return '';
-        const d = new Date(dateStr);
-        if (freq === 'WEEKLY') d.setDate(d.getDate() + 7);
-        else if (freq === 'QUARTERLY') d.setMonth(d.getMonth() + 3);
-        else if (freq === 'YEARLY') d.setFullYear(d.getFullYear() + 1);
-        else d.setMonth(d.getMonth() + 1); // Default MONTHLY
-        return d.toISOString().split('T')[0];
-    };
 
     const handleStatusToggle = useCallback(async (payment) => {
         const newStatus = payment.status === 'PAID' ? 'PENDING' : 'PAID';
         await updatePayment(payment.id, { status: newStatus });
 
         if (newStatus === 'PAID' && payment.isRecurring) {
-            const nextDueDate = addPeriod(payment.dueDate, payment.recurringFrequency || 'MONTHLY');
-            
-            const alreadyExists = payments.some(p => 
-                p.institution === payment.institution && 
-                p.type === payment.type &&
-                p.dueDate === nextDueDate
-            );
-
-            if (!alreadyExists) {
-                const nextPayment = { ...payment };
-                delete nextPayment.id;
-                nextPayment.status = 'PENDING';
-                nextPayment.dueDate = nextDueDate;
-                
-                if (payment.statementDate) {
-                    nextPayment.statementDate = addPeriod(payment.statementDate, payment.recurringFrequency || 'MONTHLY');
-                }
-
-                if (payment.type === 'CREDIT_CARD') {
-                    nextPayment.amount = 0;
-                }
-
+            const nextPayment = getNextRecurringPayment(payment, payments);
+            if (nextPayment) {
                 await addPayment(nextPayment);
             }
         }
@@ -195,9 +184,30 @@ export default function PaymentsScreen() {
                 <View style={styles.paymentHeader}>
                     <Text style={{ fontSize: 24 }}>{typeEmoji(item.type)}</Text>
                     <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={styles.paymentInstitution}>
-                            {item.institution || item.description}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <Text style={styles.paymentInstitution}>
+                                {item.institution || item.description}
+                            </Text>
+                            {item.isRecurring && (() => {
+                                const parsed = parseRecurringConfig(item.recurringFrequency);
+                                return (
+                                    <View style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                                        paddingHorizontal: 6,
+                                        paddingVertical: 2,
+                                        borderRadius: 4,
+                                        gap: 3
+                                    }}>
+                                        <Ionicons name="repeat" size={11} color={Colors.primary} />
+                                        <Text style={{ color: Colors.primary, fontSize: 10, fontWeight: '700' }}>
+                                            {parsed.label}
+                                        </Text>
+                                    </View>
+                                );
+                            })()}
+                        </View>
                         {item.description && item.institution && (
                             <Text style={styles.paymentDesc}>{item.description}</Text>
                         )}
@@ -426,7 +436,8 @@ export default function PaymentsScreen() {
                             </View>
 
                             {form.isRecurring && (
-                                <View style={{ marginTop: 15 }}>
+                                <View style={{ marginTop: 15, padding: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+                                    <Text style={[styles.label, { marginTop: 0, marginBottom: 8, fontSize: 12 }]}>Tekrar Sıklığı</Text>
                                     <View style={styles.typeRow}>
                                         {FREQUENCIES.map(f => (
                                             <TouchableOpacity
@@ -441,6 +452,61 @@ export default function PaymentsScreen() {
                                             </TouchableOpacity>
                                         ))}
                                     </View>
+
+                                    <Text style={[styles.label, { marginTop: 14, marginBottom: 8, fontSize: 12 }]}>Tekrar Süresi / Limiti</Text>
+                                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                                        <TouchableOpacity
+                                            style={[styles.typeChip, { flex: 1 }, form.recurringType === 'INFINITE' && styles.typeChipActive]}
+                                            onPress={() => setForm({ ...form, recurringType: 'INFINITE' })}
+                                        >
+                                            <Text style={[styles.typeChipText, form.recurringType === 'INFINITE' && { color: '#fff', fontWeight: 'bold' }]}>
+                                                ♾️ Sonsuz (Süresiz)
+                                            </Text>
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity
+                                            style={[styles.typeChip, { flex: 1 }, form.recurringType === 'COUNT' && styles.typeChipActive]}
+                                            onPress={() => setForm({ ...form, recurringType: 'COUNT' })}
+                                        >
+                                            <Text style={[styles.typeChipText, form.recurringType === 'COUNT' && { color: '#fff', fontWeight: 'bold' }]}>
+                                                🔢 Belirli Sayıda
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    {form.recurringType === 'COUNT' && (
+                                        <View style={{ marginTop: 6 }}>
+                                            <Text style={[styles.label, { marginTop: 0, marginBottom: 6, fontSize: 11, color: Colors.textSecondary }]}>
+                                                Toplam Tekrar / Taksit Sayısı
+                                            </Text>
+                                            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                                                {['3', '6', '9', '12'].map(cnt => (
+                                                    <TouchableOpacity
+                                                        key={cnt}
+                                                        style={[
+                                                            styles.typeChip,
+                                                            { flex: 1, paddingVertical: 6 },
+                                                            form.recurringTotalCount === cnt && styles.typeChipActive
+                                                        ]}
+                                                        onPress={() => setForm({ ...form, recurringTotalCount: cnt })}
+                                                    >
+                                                        <Text style={[
+                                                            styles.typeChipText,
+                                                            form.recurringTotalCount === cnt && { color: '#fff', fontWeight: 'bold' }
+                                                        ]}>{cnt}</Text>
+                                                    </TouchableOpacity>
+                                                ))}
+                                                <TextInput
+                                                    style={[styles.input, { width: 60, textAlign: 'center', marginBottom: 0, paddingVertical: 6 }]}
+                                                    keyboardType="numeric"
+                                                    value={form.recurringTotalCount}
+                                                    onChangeText={(val) => setForm({ ...form, recurringTotalCount: val.replace(/\D/g, '') })}
+                                                    placeholder="Özel"
+                                                    placeholderTextColor={Colors.textSecondary}
+                                                />
+                                            </View>
+                                        </View>
+                                    )}
                                 </View>
                             )}
 

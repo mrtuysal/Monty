@@ -4,10 +4,11 @@ import { useData } from '../context/DataContext';
 import {
     FaWallet, FaMoneyBillWave, FaArrowRight, FaCreditCard,
     FaFileInvoiceDollar, FaEllipsisH, FaChevronLeft, FaChevronRight,
-    FaHandshake, FaCalendarWeek, FaCheckCircle, FaRegCircle
+    FaHandshake, FaCalendarWeek, FaCheckCircle, FaRegCircle, FaSyncAlt
 } from 'react-icons/fa';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import { getNextRecurringPayment, parseRecurringConfig } from '../lib/recurringPaymentService';
 
 export default function Dashboard() {
     const { accounts, payments, receivables, dataLoading, convertToTRY, updatePayment, addPayment } = useData();
@@ -185,16 +186,6 @@ export default function Dashboard() {
         return { total, paid, pending, paidCount, pendingCount, count: weeklyPayments.length };
     }, [weeklyPayments]);
 
-    const addPeriod = (dateStr, freq) => {
-        if (!dateStr) return '';
-        const d = new Date(dateStr);
-        if (freq === 'WEEKLY') d.setDate(d.getDate() + 7);
-        else if (freq === 'QUARTERLY') d.setMonth(d.getMonth() + 3);
-        else if (freq === 'YEARLY') d.setFullYear(d.getFullYear() + 1);
-        else d.setMonth(d.getMonth() + 1);
-        return d.toISOString().split('T')[0];
-    };
-
     const handleToggleWeeklyPayment = (e, payment) => {
         e.stopPropagation();
         const isCurrentlyPaid = payment.status === 'PAID';
@@ -205,31 +196,10 @@ export default function Dashboard() {
             updatePayment(updatedPayment);
         }
 
+        // Ödendi yapıldığında tekrarlayan ödemenin sonraki dönemini otomatik oluştur
         if (newStatus === 'PAID' && payment.isRecurring && addPayment) {
-            const nextDueDate = addPeriod(payment.dueDate, payment.recurringFrequency);
-            const alreadyExists = (payments || []).some(p =>
-                p.institution === payment.institution &&
-                p.type === payment.type &&
-                p.dueDate === nextDueDate
-            );
-
-            if (!alreadyExists) {
-                const nextPayment = { ...payment };
-                delete nextPayment.id;
-                nextPayment.status = 'PENDING';
-                nextPayment.dueDate = nextDueDate;
-                if (payment.statementDate) {
-                    nextPayment.statementDate = addPeriod(payment.statementDate, payment.recurringFrequency);
-                }
-                if (payment.type === 'CREDIT_CARD') {
-                    nextPayment.amount = 0;
-                    nextPayment.minPayment = 0;
-                    nextPayment.paymentAmount = 0;
-                    nextPayment.balance = 0;
-                } else {
-                    nextPayment.paymentAmount = nextPayment.amount;
-                    nextPayment.balance = 0;
-                }
+            const nextPayment = getNextRecurringPayment(payment, payments);
+            if (nextPayment) {
                 addPayment(nextPayment);
             }
         }
@@ -708,11 +678,38 @@ export default function Dashboard() {
                                                     fontWeight: '600',
                                                     fontSize: '13.5px',
                                                     textDecoration: isPaid ? 'line-through' : 'none',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
                                                     whiteSpace: 'nowrap',
                                                     overflow: 'hidden',
                                                     textOverflow: 'ellipsis'
                                                 }}>
-                                                    {p.institution}
+                                                    <span>{p.institution}</span>
+                                                    {p.isRecurring && (() => {
+                                                        const parsed = parseRecurringConfig(p.recurringFrequency);
+                                                        return (
+                                                            <span
+                                                                title={parsed.type === 'COUNT' ? `Toplam ${parsed.totalCount} tekrarın ${parsed.currentIndex}. döngüsü` : 'Süresiz tekrarlayan ödeme'}
+                                                                style={{
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '3px',
+                                                                    padding: '1px 5px',
+                                                                    borderRadius: '4px',
+                                                                    fontSize: '10px',
+                                                                    fontWeight: '600',
+                                                                    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                                                                    color: 'var(--primary)',
+                                                                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                                                                    textDecoration: 'none'
+                                                                }}
+                                                            >
+                                                                <FaSyncAlt style={{ fontSize: '9px' }} />
+                                                                {parsed.label}
+                                                            </span>
+                                                        );
+                                                    })()}
                                                 </div>
                                                 <div style={{ color: 'var(--text-muted)', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     {p.description || getCategoryLabel(p.type)}

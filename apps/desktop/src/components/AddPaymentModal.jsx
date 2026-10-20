@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../context/DataContext';
+import { parseRecurringConfig, encodeRecurringConfig } from '../lib/recurringPaymentService';
 
 export default function AddPaymentModal({ isOpen, onClose, onSave, initialData }) {
     const { formatMoneyInput, parseMoneyInput } = useData();
@@ -14,7 +15,10 @@ export default function AddPaymentModal({ isOpen, onClose, onSave, initialData }
         statementDate: '',
         dueDate: '',
         isRecurring: false,
-        recurringFrequency: 'MONTHLY'
+        recurringFrequency: 'MONTHLY',
+        recurringType: 'INFINITE', // 'INFINITE' | 'COUNT'
+        recurringTotalCount: 12,
+        recurringCurrentIndex: 1
     });
     const [formErrors, setFormErrors] = useState({});
 
@@ -23,6 +27,7 @@ export default function AddPaymentModal({ isOpen, onClose, onSave, initialData }
 
         if (initialData) {
             setPaymentType(initialData.type || 'CREDIT_CARD');
+            const parsedRecurring = parseRecurringConfig(initialData.recurringFrequency);
             setFormData({
                 institution: initialData.institution,
                 description: initialData.description,
@@ -32,7 +37,10 @@ export default function AddPaymentModal({ isOpen, onClose, onSave, initialData }
                 statementDate: initialData.statementDate,
                 dueDate: initialData.dueDate,
                 isRecurring: initialData.isRecurring || false,
-                recurringFrequency: initialData.recurringFrequency || 'MONTHLY'
+                recurringFrequency: parsedRecurring.frequency || 'MONTHLY',
+                recurringType: parsedRecurring.type || 'INFINITE',
+                recurringTotalCount: parsedRecurring.totalCount || 12,
+                recurringCurrentIndex: parsedRecurring.currentIndex || 1
             });
         } else {
             setPaymentType('CREDIT_CARD');
@@ -45,7 +53,10 @@ export default function AddPaymentModal({ isOpen, onClose, onSave, initialData }
                 statementDate: '',
                 dueDate: '',
                 isRecurring: true,
-                recurringFrequency: 'MONTHLY'
+                recurringFrequency: 'MONTHLY',
+                recurringType: 'INFINITE',
+                recurringTotalCount: 12,
+                recurringCurrentIndex: 1
             });
         }
         setFormErrors({});
@@ -107,6 +118,13 @@ export default function AddPaymentModal({ isOpen, onClose, onSave, initialData }
             return;
         }
 
+        const finalFrequency = encodeRecurringConfig({
+            frequency: formData.recurringFrequency,
+            type: formData.recurringType,
+            totalCount: formData.recurringTotalCount,
+            currentIndex: formData.recurringCurrentIndex || 1
+        });
+
         const payment = {
             id: initialData ? initialData.id : Date.now().toString(),
             type: paymentType,
@@ -120,7 +138,7 @@ export default function AddPaymentModal({ isOpen, onClose, onSave, initialData }
             balance: parseMoneyInput(formData.amount) - (parseMoneyInput(formData.paymentAmount) || parseMoneyInput(formData.amount)),
             status: initialData ? initialData.status : 'PENDING',
             isRecurring: formData.isRecurring,
-            recurringFrequency: formData.recurringFrequency
+            recurringFrequency: finalFrequency
         };
 
         onSave(payment);
@@ -230,21 +248,139 @@ export default function AddPaymentModal({ isOpen, onClose, onSave, initialData }
                         </div>
                     </div>
 
-                    {/* Recurring Frequency Dropdown (Conditional) */}
+                    {/* Recurring Options */}
                     {formData.isRecurring && (
-                        <div style={{ animation: 'fadeIn 0.3s ease-in-out' }}>
-                            <label style={labelStyle}>Ödeme Periyodu</label>
-                            <select
-                                name="recurringFrequency"
-                                value={formData.recurringFrequency}
-                                onChange={handleChange}
-                                style={selectStyle('recurringFrequency')}
-                            >
-                                <option value="WEEKLY">Haftalık</option>
-                                <option value="MONTHLY">Aylık (Varsayılan)</option>
-                                <option value="QUARTERLY">3 Aylık</option>
-                                <option value="YEARLY">Yıllık</option>
-                            </select>
+                        <div style={{
+                            animation: 'fadeIn 0.3s ease-in-out',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            padding: '16px',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '14px'
+                        }}>
+                            {/* Frequency Dropdown */}
+                            <div>
+                                <label style={labelStyle}>Ödeme Periyodu</label>
+                                <select
+                                    name="recurringFrequency"
+                                    value={formData.recurringFrequency}
+                                    onChange={handleChange}
+                                    style={selectStyle('recurringFrequency')}
+                                >
+                                    <option value="MONTHLY">Aylık (Varsayılan)</option>
+                                    <option value="WEEKLY">Haftalık</option>
+                                    <option value="QUARTERLY">3 Aylık</option>
+                                    <option value="YEARLY">Yıllık</option>
+                                </select>
+                            </div>
+
+                            {/* Repetition Limit: Infinite vs Fixed Count */}
+                            <div>
+                                <label style={labelStyle}>Tekrar Sayısı / Süresi</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, recurringType: 'INFINITE' }))}
+                                        style={{
+                                            padding: '10px 14px',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: formData.recurringType === 'INFINITE' ? '2px solid var(--primary)' : '1px solid var(--border)',
+                                            background: formData.recurringType === 'INFINITE' ? 'rgba(var(--primary-rgb, 108, 99, 255), 0.18)' : '#151515',
+                                            color: formData.recurringType === 'INFINITE' ? '#fff' : 'var(--text-muted)',
+                                            cursor: 'pointer',
+                                            fontWeight: '600',
+                                            fontSize: '13px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <span>♾️ Sonsuz / Süresiz</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, recurringType: 'COUNT' }))}
+                                        style={{
+                                            padding: '10px 14px',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: formData.recurringType === 'COUNT' ? '2px solid var(--primary)' : '1px solid var(--border)',
+                                            background: formData.recurringType === 'COUNT' ? 'rgba(var(--primary-rgb, 108, 99, 255), 0.18)' : '#151515',
+                                            color: formData.recurringType === 'COUNT' ? '#fff' : 'var(--text-muted)',
+                                            cursor: 'pointer',
+                                            fontWeight: '600',
+                                            fontSize: '13px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <span>🔢 Belirli Sayıda Tekrar</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Fixed Count Sub-panel */}
+                            {formData.recurringType === 'COUNT' && (
+                                <div style={{
+                                    marginTop: '4px',
+                                    padding: '14px',
+                                    background: 'rgba(0, 0, 0, 0.35)',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                                }}>
+                                    <label style={{ ...labelStyle, fontSize: '12px', marginBottom: '8px' }}>
+                                        Kaç Kez Tekrarlanacak? (Taksit / Dönem Sayısı)
+                                    </label>
+
+                                    {/* Quick Presets */}
+                                    <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                                        {[3, 6, 9, 12, 24].map(num => (
+                                            <button
+                                                key={num}
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, recurringTotalCount: num }))}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '6px 0',
+                                                    borderRadius: '6px',
+                                                    border: Number(formData.recurringTotalCount) === num ? '1px solid var(--primary)' : '1px solid var(--border)',
+                                                    background: Number(formData.recurringTotalCount) === num ? 'var(--primary)' : 'transparent',
+                                                    color: '#fff',
+                                                    fontSize: '12px',
+                                                    fontWeight: '600',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {num} Ay
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <input
+                                            type="number"
+                                            min="2"
+                                            max="120"
+                                            name="recurringTotalCount"
+                                            value={formData.recurringTotalCount || ''}
+                                            onChange={handleChange}
+                                            placeholder="Örn: 12"
+                                            style={{ ...inputStyle('recurringTotalCount'), width: '110px', padding: '8px 12px' }}
+                                        />
+                                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+                                            tekrar sonra durdurulur.
+                                            {formData.recurringCurrentIndex > 1 && ` (Şu an: ${formData.recurringCurrentIndex}. tekrar)`}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 

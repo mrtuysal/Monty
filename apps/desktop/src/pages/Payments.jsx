@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import Layout from '../components/Layout';
 import FileUploadModal from '../components/FileUploadModal';
 import AddPaymentModal from '../components/AddPaymentModal';
-import { FaChevronLeft, FaChevronRight, FaEllipsisV, FaFileUpload } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaEllipsisV, FaFileUpload, FaSyncAlt } from 'react-icons/fa';
+import { getNextRecurringPayment, parseRecurringConfig } from '../lib/recurringPaymentService';
 
 import { useData } from '../context/DataContext';
 
@@ -159,16 +160,6 @@ export default function Payments() {
         setMenuOpenId(null);
     };
 
-    const addPeriod = (dateStr, freq) => {
-        if (!dateStr) return '';
-        const d = new Date(dateStr);
-        if (freq === 'WEEKLY') d.setDate(d.getDate() + 7);
-        else if (freq === 'QUARTERLY') d.setMonth(d.getMonth() + 3);
-        else if (freq === 'YEARLY') d.setFullYear(d.getFullYear() + 1);
-        else d.setMonth(d.getMonth() + 1); // Default MONTHLY
-        return d.toISOString().split('T')[0];
-    };
-
     const handleToggleStatus = (payment) => {
         const isCurrentlyPaid = payment.status === 'PAID';
         const newStatus = isCurrentlyPaid ? 'PENDING' : 'PAID';
@@ -176,37 +167,10 @@ export default function Payments() {
         const updatedPayment = { ...payment, status: newStatus };
         updatePayment(updatedPayment);
 
-        // Toggling to PAID and is recurring -> spawn next payment
+        // Ödendi olarak işaretlendiğinde ve tekrarlayan bir ödeme ise sonraki periyodu otomatik oluştur
         if (newStatus === 'PAID' && payment.isRecurring) {
-            const nextDueDate = addPeriod(payment.dueDate, payment.recurringFrequency);
-            
-            // Check if next payment already exists to prevent duplicate creation
-            const alreadyExists = allPayments.some(p => 
-                p.institution === payment.institution && 
-                p.type === payment.type &&
-                p.dueDate === nextDueDate
-            );
-
-            if (!alreadyExists) {
-                const nextPayment = { ...payment };
-                delete nextPayment.id;
-                nextPayment.status = 'PENDING';
-                nextPayment.dueDate = nextDueDate;
-                
-                if (payment.statementDate) {
-                    nextPayment.statementDate = addPeriod(payment.statementDate, payment.recurringFrequency);
-                }
-
-                if (payment.type === 'CREDIT_CARD') {
-                    nextPayment.amount = 0;
-                    nextPayment.minPayment = 0;
-                    nextPayment.paymentAmount = 0;
-                    nextPayment.balance = 0;
-                } else {
-                    nextPayment.paymentAmount = nextPayment.amount;
-                    nextPayment.balance = 0;
-                }
-
+            const nextPayment = getNextRecurringPayment(payment, allPayments);
+            if (nextPayment) {
                 addPayment(nextPayment);
             }
         }
@@ -397,7 +361,34 @@ export default function Payments() {
                                                 borderTop: isGroupStart ? '2px solid rgba(255, 255, 255, 0.15)' : 'none',
                                                 backgroundColor: isOverdue ? 'rgba(255, 0, 0, 0.3)' : 'transparent'
                                             }}>
-                                                <td style={{ padding: '10px', fontWeight: '500', color: '#fff' }}>{item.institution}</td>
+                                                <td style={{ padding: '10px', fontWeight: '500', color: '#fff' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                                        <span>{item.institution}</span>
+                                                        {item.isRecurring && (() => {
+                                                            const parsed = parseRecurringConfig(item.recurringFrequency);
+                                                            return (
+                                                                <span
+                                                                    title={parsed.type === 'COUNT' ? `Toplam ${parsed.totalCount} tekrarın ${parsed.currentIndex}. döngüsü` : 'Süresiz tekrarlayan ödeme'}
+                                                                    style={{
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '3px',
+                                                                        padding: '1px 5px',
+                                                                        borderRadius: '4px',
+                                                                        fontSize: '10px',
+                                                                        fontWeight: '600',
+                                                                        backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                                                                        color: 'var(--primary)',
+                                                                        border: '1px solid rgba(56, 189, 248, 0.3)'
+                                                                    }}
+                                                                >
+                                                                    <FaSyncAlt style={{ fontSize: '9px' }} />
+                                                                    {parsed.label}
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </td>
                                                 <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{item.description}</td>
                                                 <td style={{ padding: '10px', color: 'var(--text-muted)' }}>
                                                     {item.statementDate ? new Date(item.statementDate).toLocaleDateString('tr-TR') : '-'}
