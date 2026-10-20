@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { FaHome, FaWallet, FaCreditCard, FaCog, FaHandshake } from 'react-icons/fa';
 import clsx from 'clsx';
+import pkg from '../../package.json';
 import './Layout.css';
 
 const SidebarItem = ({ to, icon, label }) => (
@@ -15,6 +16,16 @@ const SidebarItem = ({ to, icon, label }) => (
 );
 
 export default function Layout({ children }) {
+    const [version, setVersion] = useState(pkg.version || '2.2.0');
+
+    useEffect(() => {
+        if (window.electronAPI?.getAppVersion) {
+            window.electronAPI.getAppVersion().then((v) => {
+                if (v) setVersion(v);
+            }).catch(() => {});
+        }
+    }, []);
+
     return (
         <div className="app-container">
             {/* Fixed drag region for frameless window */}
@@ -36,6 +47,9 @@ export default function Layout({ children }) {
 
                 <div className="settings-area">
                     <SidebarItem to="/settings" icon={<FaCog />} label="Ayarlar" />
+                    <div className="sidebar-version-badge" title={`Monty Desktop v${version}`}>
+                        v{version}
+                    </div>
                 </div>
             </aside>
 

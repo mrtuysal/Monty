@@ -87,6 +87,22 @@
     padding-top: 20px;
 }
 
+.sidebar-version-badge {
+    padding: 8px 15px 0 15px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    opacity: 0.65;
+    transition: opacity 0.2s ease, color 0.2s ease;
+    user-select: none;
+}
+
+.sidebar-version-badge:hover {
+    opacity: 1;
+    color: var(--primary);
+}
+
 .main-content {
     flex: 1;
     padding: 40px 50px;
@@ -133,6 +149,12 @@
         padding: 12px;
     }
 
+    .sidebar-version-badge {
+        padding: 6px 0;
+        text-align: center;
+        font-size: 0.65rem;
+    }
+
     .main-content {
         padding: 30px 20px;
         max-width: calc(100vw - 80px);
@@ -142,6 +164,10 @@
 @media (max-width: 600px) {
     .app-container {
         flex-direction: column;
+    }
+
+    .sidebar-version-badge {
+        display: none;
     }
 
     .sidebar {
