@@ -43,6 +43,7 @@ export default function ReceivablesScreen() {
     const [activeTab, setActiveTab] = useState('ALL'); // ALL, RECEIVABLE, DEBT
     const [modalVisible, setModalVisible] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [actionItem, setActionItem] = useState(null);
     const [form, setForm] = useState(initialForm);
 
     // Summary calculations
@@ -239,90 +240,82 @@ export default function ReceivablesScreen() {
                     const isDone = item.status === 'DONE';
 
                     return (
-                        <View style={[styles.card, isDone && styles.cardDone]}>
-                            <View style={styles.cardHeader}>
-                                <View style={styles.cardPersonGroup}>
-                                    <View style={[
-                                        styles.typeIndicator,
-                                        { backgroundColor: isReceivable ? 'rgba(50,215,75,0.15)' : 'rgba(255,69,58,0.15)' }
-                                    ]}>
-                                        <Ionicons
-                                            name={isReceivable ? 'arrow-down' : 'arrow-up'}
-                                            size={16}
-                                            color={isReceivable ? Colors.success : Colors.error}
-                                        />
-                                    </View>
-                                    <View>
-                                        <Text style={[styles.cardPerson, isDone && styles.textDone]}>
+                        <View style={[styles.compactCard, isDone && { opacity: 0.75 }]}>
+                            {/* Sol / Orta İçerik Alanı (2 Kompakt Satır) */}
+                            <TouchableOpacity
+                                style={styles.cardContentArea}
+                                activeOpacity={0.7}
+                                onPress={() => handleOpenEdit(item)}
+                            >
+                                {/* 1. Üst Satır: Daha büyük şekilde isim, karşısında tutar */}
+                                <View style={styles.cardRow}>
+                                    <View style={styles.leftRowGroup}>
+                                        <Text style={styles.personText} numberOfLines={1}>
                                             {item.person}
                                         </Text>
-                                        <Text style={styles.cardDesc}>
-                                            {item.description || (isReceivable ? 'Alacak' : 'Borç')}
-                                        </Text>
+                                        <View style={[
+                                            styles.miniTypeBadge,
+                                            { backgroundColor: isReceivable ? 'rgba(50,215,75,0.15)' : 'rgba(255,69,58,0.15)' }
+                                        ]}>
+                                            <Text style={[
+                                                styles.miniTypeText,
+                                                { color: isReceivable ? Colors.success : Colors.error }
+                                            ]}>
+                                                {isReceivable ? 'Alacak' : 'Borç'}
+                                            </Text>
+                                        </View>
                                     </View>
-                                </View>
 
-                                <View style={{ alignItems: 'flex-end' }}>
                                     <Text style={[
-                                        styles.cardAmount,
+                                        styles.amountText,
                                         { color: isDone ? Colors.textSecondary : isReceivable ? Colors.success : Colors.error }
                                     ]}>
                                         {isReceivable ? '+' : '-'}₺ {formatMoney(item.amount)}
                                     </Text>
-                                    <View style={[
-                                        styles.statusBadge,
-                                        { backgroundColor: isDone ? 'rgba(50,215,75,0.15)' : 'rgba(255,149,0,0.15)' }
-                                    ]}>
+                                </View>
+
+                                {/* 2. Alt Satır: İsim altında açıklama, karşısında tarih */}
+                                <View style={[styles.cardRow, { marginTop: 4 }]}>
+                                    <Text style={styles.descText} numberOfLines={1}>
+                                        {item.description || (isReceivable ? 'Alacak Kaydı' : 'Borç Kaydı')}
+                                    </Text>
+
+                                    <View style={styles.dateBadge}>
+                                        <Ionicons
+                                            name={(item.dueDate || item.due_date) ? "time-outline" : "calendar-outline"}
+                                            size={11}
+                                            color={(item.dueDate || item.due_date) ? '#FF9500' : Colors.textSecondary}
+                                        />
                                         <Text style={[
-                                            styles.statusBadgeText,
-                                            { color: isDone ? Colors.success : '#FF9500' }
+                                            styles.dateText,
+                                            (item.dueDate || item.due_date) && { color: '#FF9500', fontWeight: '600' }
                                         ]}>
-                                            {isDone ? (isReceivable ? 'Tahsil Edildi' : 'Ödendi') : 'Bekliyor'}
+                                            {(item.dueDate || item.due_date)
+                                                ? `Vade: ${formatDate(item.dueDate || item.due_date)}`
+                                                : formatDate(item.date)}
                                         </Text>
                                     </View>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
 
-                            {/* Card Footer Info & Actions */}
-                            <View style={styles.cardFooter}>
-                                <View style={styles.dateGroup}>
-                                    {item.date && (
-                                        <Text style={styles.dateText}>
-                                            <Ionicons name="calendar-outline" size={12} /> {formatDate(item.date)}
-                                        </Text>
-                                    )}
-                                    {(item.dueDate || item.due_date) && (
-                                        <Text style={[styles.dateText, { color: '#FF9500' }]}>
-                                            <Ionicons name="time-outline" size={12} /> Vade: {formatDate(item.dueDate || item.due_date)}
-                                        </Text>
-                                    )}
-                                </View>
-
-                                <View style={styles.cardActions}>
-                                    <TouchableOpacity
-                                        style={[styles.actionIconBtn, isDone && { backgroundColor: Colors.success }]}
-                                        onPress={() => handleToggleDone(item)}
-                                    >
-                                        <Ionicons
-                                            name={isDone ? 'checkmark' : 'checkmark-outline'}
-                                            size={16}
-                                            color={isDone ? '#fff' : Colors.textSecondary}
-                                        />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.actionIconBtn}
-                                        onPress={() => handleOpenEdit(item)}
-                                    >
-                                        <Ionicons name="pencil-outline" size={16} color={Colors.textSecondary} />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.actionIconBtn}
-                                        onPress={() => handleDelete(item)}
-                                    >
-                                        <Ionicons name="trash-outline" size={16} color={Colors.error} />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
+                            {/* En Sağda: İki Satırı da Kapsayan Dikey Durum Rengi Çubuğu */}
+                            <TouchableOpacity
+                                style={[
+                                    styles.verticalStatusBar,
+                                    { backgroundColor: isDone ? '#32d74b' : '#ff9500' }
+                                ]}
+                                activeOpacity={0.7}
+                                onPress={() => setActionItem(item)}
+                            >
+                                <Ionicons
+                                    name={isDone ? 'checkmark-circle' : 'time'}
+                                    size={18}
+                                    color="#fff"
+                                />
+                                <Text style={styles.verticalStatusText}>
+                                    {isDone ? (isReceivable ? 'TAHSİL' : 'ÖDENDİ') : 'BEKLİYOR'}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
                     );
                 }}
@@ -455,6 +448,96 @@ export default function ReceivablesScreen() {
                     </View>
                 </KeyboardAwareScrollView>
             </Modal>
+
+            {/* Durum Rengi Çubuğuna Basıldığında Açılan İşlem Seçenekleri Modalı */}
+            <Modal visible={!!actionItem} animationType="fade" transparent onRequestClose={() => setActionItem(null)}>
+                <TouchableOpacity
+                    style={styles.actionModalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setActionItem(null)}
+                >
+                    <View style={styles.actionModalSheet}>
+                        <View style={styles.actionModalHeader}>
+                            <Text style={styles.actionModalTitle} numberOfLines={1}>
+                                {actionItem?.person}
+                            </Text>
+                            <Text style={[
+                                styles.actionModalSub,
+                                { color: actionItem?.type === 'RECEIVABLE' ? Colors.success : Colors.error }
+                            ]}>
+                                {actionItem?.type === 'RECEIVABLE' ? 'Alacak: +' : 'Borç: -'}₺ {formatMoney(actionItem?.amount)}
+                            </Text>
+                        </View>
+
+                        {/* Durum Değiştir Butonu */}
+                        <TouchableOpacity
+                            style={[
+                                styles.actionBtn,
+                                { backgroundColor: actionItem?.status === 'DONE' ? 'rgba(255,149,0,0.15)' : 'rgba(50,215,75,0.15)' }
+                            ]}
+                            onPress={() => {
+                                const target = actionItem;
+                                setActionItem(null);
+                                handleToggleDone(target);
+                            }}
+                        >
+                            <Ionicons
+                                name={actionItem?.status === 'DONE' ? 'time' : 'checkmark-circle'}
+                                size={20}
+                                color={actionItem?.status === 'DONE' ? '#ff9500' : '#32d74b'}
+                            />
+                            <Text style={[
+                                styles.actionBtnText,
+                                { color: actionItem?.status === 'DONE' ? '#ff9500' : '#32d74b' }
+                            ]}>
+                                {actionItem?.status === 'DONE'
+                                    ? 'Bekliyor Olarak Değiştir'
+                                    : (actionItem?.type === 'RECEIVABLE' ? 'Tahsil Edildi Olarak İşaretle' : 'Ödendi Olarak İşaretle')}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Düzenle Butonu */}
+                        <TouchableOpacity
+                            style={styles.actionBtn}
+                            onPress={() => {
+                                const target = actionItem;
+                                setActionItem(null);
+                                handleOpenEdit(target);
+                            }}
+                        >
+                            <Ionicons name="create-outline" size={20} color={Colors.primary} />
+                            <Text style={[styles.actionBtnText, { color: Colors.primary }]}>
+                                Kaydı Düzenle
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Sil Butonu */}
+                        <TouchableOpacity
+                            style={[styles.actionBtn, { backgroundColor: 'rgba(255,69,58,0.1)' }]}
+                            onPress={() => {
+                                const target = actionItem;
+                                setActionItem(null);
+                                handleDelete(target);
+                            }}
+                        >
+                            <Ionicons name="trash-outline" size={20} color={Colors.error} />
+                            <Text style={[styles.actionBtnText, { color: Colors.error }]}>
+                                Kaydı Sil
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Kapat Butonu */}
+                        <TouchableOpacity
+                            style={[styles.actionBtn, { marginTop: 6, backgroundColor: 'rgba(255,255,255,0.06)' }]}
+                            onPress={() => setActionItem(null)}
+                        >
+                            <Text style={[styles.actionBtnText, { color: Colors.textSecondary }]}>
+                                Kapat
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 }
@@ -466,54 +549,54 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: Layout.screenPadding,
-        marginBottom: 15,
+        marginBottom: 12,
     },
     addButton: {
         width: 44,
         height: 44,
-        borderRadius: 22,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },
     netCard: {
         marginHorizontal: Layout.screenPadding,
         borderRadius: 16,
-        padding: 18,
+        padding: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
-        marginBottom: 15,
+        marginBottom: 12,
     },
     netRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 15,
+        marginBottom: 12,
     },
     netLabel: {
         color: Colors.textSecondary,
-        fontSize: 13,
+        fontSize: 12.5,
         fontWeight: '500',
     },
     netAmount: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: '700',
-        marginTop: 4,
+        marginTop: 2,
     },
     statsSplit: {
         flexDirection: 'row',
         borderTopWidth: 1,
         borderTopColor: 'rgba(255,255,255,0.08)',
-        paddingTop: 12,
+        paddingTop: 10,
     },
     statBox: {
         flex: 1,
     },
     statBoxLabel: {
         color: Colors.textSecondary,
-        fontSize: 12,
+        fontSize: 11.5,
     },
     statBoxVal: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
         marginTop: 2,
     },
@@ -526,12 +609,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         paddingHorizontal: Layout.screenPadding,
         gap: 8,
-        marginBottom: 12,
+        marginBottom: 10,
     },
     tabBtn: {
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 20,
+        paddingVertical: 7,
+        paddingHorizontal: 14,
+        borderRadius: 18,
         backgroundColor: Colors.surface,
         borderWidth: 1,
         borderColor: Colors.border,
@@ -542,7 +625,7 @@ const styles = StyleSheet.create({
     },
     tabBtnText: {
         color: Colors.textSecondary,
-        fontSize: 13,
+        fontSize: 12.5,
         fontWeight: '600',
     },
     tabBtnTextActive: {
@@ -550,91 +633,131 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingHorizontal: Layout.screenPadding,
-        paddingBottom: 30,
+        paddingBottom: 35,
     },
-    card: {
+
+    // Kompakt 2 Satırlı Kart
+    compactCard: {
+        flexDirection: 'row',
         backgroundColor: Colors.surface,
-        borderRadius: 14,
-        padding: 16,
-        marginBottom: 12,
+        borderRadius: 12,
+        marginBottom: 8,
         borderWidth: 1,
-        borderColor: Colors.border,
+        borderColor: 'rgba(255,255,255,0.06)',
+        overflow: 'hidden',
     },
-    cardDone: {
-        opacity: 0.6,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-    },
-    cardPersonGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
+    cardContentArea: {
         flex: 1,
-    },
-    typeIndicator: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
         justifyContent: 'center',
     },
-    cardPerson: {
+    cardRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    leftRowGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        flex: 1,
+        marginRight: 10,
+    },
+    personText: {
         color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 15.5,
+        fontWeight: 'bold',
+        maxWidth: 160,
     },
-    textDone: {
-        textDecorationLine: 'line-through',
+    miniTypeBadge: {
+        paddingHorizontal: 5,
+        paddingVertical: 1.5,
+        borderRadius: 4,
     },
-    cardDesc: {
-        color: Colors.textSecondary,
-        fontSize: 12,
-        marginTop: 2,
-    },
-    cardAmount: {
-        fontSize: 16,
+    miniTypeText: {
+        fontSize: 10,
         fontWeight: '700',
     },
-    statusBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 8,
-        marginTop: 4,
+    amountText: {
+        fontSize: 15.5,
+        fontWeight: 'bold',
+        textAlign: 'right',
     },
-    statusBadgeText: {
-        fontSize: 11,
-        fontWeight: '600',
+    descText: {
+        color: Colors.textSecondary,
+        fontSize: 12,
+        maxWidth: 150,
     },
-    cardFooter: {
+    dateBadge: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 14,
-        paddingTop: 10,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.05)',
-    },
-    dateGroup: {
-        gap: 3,
+        gap: 4,
     },
     dateText: {
         color: Colors.textSecondary,
-        fontSize: 11,
+        fontSize: 11.5,
     },
-    cardActions: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-    actionIconBtn: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+
+    // Dikey Durum Rengi Barı
+    verticalStatusBar: {
+        width: 38,
         alignItems: 'center',
         justifyContent: 'center',
+        paddingVertical: 6,
+        gap: 4,
+    },
+    verticalStatusText: {
+        color: '#fff',
+        fontSize: 8,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+
+    // İşlem Seçenekleri Modalı
+    actionModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.65)',
+        justifyContent: 'flex-end',
+        padding: 16,
+    },
+    actionModalSheet: {
+        backgroundColor: '#1a1a2e',
+        borderRadius: 20,
+        padding: 18,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    actionModalHeader: {
+        alignItems: 'center',
+        marginBottom: 10,
+        paddingBottom: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.08)',
+    },
+    actionModalTitle: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    actionModalSub: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginTop: 2,
+    },
+    actionBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 13,
+        borderRadius: 12,
+        backgroundColor: Colors.surface,
+    },
+    actionBtnText: {
+        fontSize: 14.5,
+        fontWeight: '600',
     },
     emptyContainer: {
         alignItems: 'center',

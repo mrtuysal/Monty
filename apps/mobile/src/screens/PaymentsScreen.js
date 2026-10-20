@@ -55,6 +55,7 @@ export default function PaymentsScreen() {
     const [form, setForm] = useState(initialForm);
     const [filter, setFilter] = useState('ALL');
     const [editingId, setEditingId] = useState(null);
+    const [actionPayment, setActionPayment] = useState(null);
     const [showDatePicker, setShowDatePicker] = useState({ visible: false, field: null });
 
     const handleDateChange = (event, selectedDate) => {
@@ -174,88 +175,85 @@ export default function PaymentsScreen() {
     const typeEmoji = (type) => PAYMENT_TYPES.find(t => t.key === type)?.emoji || '📋';
 
     const renderPayment = ({ item }) => {
-        const status = STATUS_MAP[item.status] || STATUS_MAP.PENDING;
+        const isPaid = item.status === 'PAID';
+        const isOverdue = !isPaid && new Date(item.dueDate) < new Date();
+        const statusColor = isPaid ? '#32d74b' : isOverdue ? '#ff453a' : '#ff9500';
+
         return (
-            <TouchableOpacity
-                style={styles.paymentCard}
-                activeOpacity={0.7}
-                onPress={() => handleEdit(item)}
-            >
-                <View style={styles.paymentHeader}>
-                    <Text style={{ fontSize: 24 }}>{typeEmoji(item.type)}</Text>
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <Text style={styles.paymentInstitution}>
+            <View style={styles.compactPaymentCard}>
+                {/* Sol İçerik Alanı (2 Kompakt Satır) */}
+                <TouchableOpacity
+                    style={styles.cardContentArea}
+                    activeOpacity={0.7}
+                    onPress={() => handleEdit(item)}
+                >
+                    {/* 1. Üst Satır: Kurum, HK, Karşısında Borç Tutarı */}
+                    <View style={styles.cardRow}>
+                        <View style={styles.leftRowGroup}>
+                            <Text style={styles.institutionText} numberOfLines={1}>
                                 {item.institution || item.description}
                             </Text>
                             {item.isRecurring && (() => {
                                 const parsed = parseRecurringConfig(item.recurringFrequency);
                                 return (
-                                    <View style={{
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                                        paddingHorizontal: 6,
-                                        paddingVertical: 2,
-                                        borderRadius: 4,
-                                        gap: 3
-                                    }}>
-                                        <Ionicons name="repeat" size={11} color={Colors.primary} />
-                                        <Text style={{ color: Colors.primary, fontSize: 10, fontWeight: '700' }}>
-                                            {parsed.label}
-                                        </Text>
+                                    <View style={styles.miniRecurringBadge}>
+                                        <Ionicons name="repeat" size={10} color={Colors.primary} />
+                                        <Text style={styles.miniRecurringText}>{parsed.label}</Text>
                                     </View>
                                 );
                             })()}
+                            {item.statementDate ? (
+                                <Text style={styles.statementText}>HK: {formatDate(item.statementDate)}</Text>
+                            ) : null}
                         </View>
-                        {item.description && item.institution && (
-                            <Text style={styles.paymentDesc}>{item.description}</Text>
-                        )}
-                    </View>
-                    <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <TouchableOpacity onPress={() => handleEdit(item)}>
-                            <Ionicons name="create-outline" size={18} color={Colors.primary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleDelete(item)}>
-                            <Ionicons name="trash-outline" size={18} color={Colors.textSecondary} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
 
-                <View style={styles.paymentDetails}>
-                    <View style={styles.detailItem}>
-                        <Ionicons name="calendar-outline" size={14} color={Colors.textSecondary} />
-                        <Text style={styles.detailText}>{formatDate(item.dueDate)}</Text>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: status.color + '20' }]}>
-                        <View style={[styles.statusDot, { backgroundColor: status.color }]} />
-                        <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
-                    </View>
-                </View>
-
-                <View style={styles.paymentFooter}>
-                    <Text style={styles.paymentAmount}>₺ {formatMoney(item.amount)}</Text>
-                    <TouchableOpacity
-                        onPress={() => handleStatusToggle(item)}
-                        style={[
-                            styles.toggleBtn,
-                            item.status === 'PAID' && styles.toggleBtnPaid,
-                        ]}
-                    >
-                        <Ionicons
-                            name={item.status === 'PAID' ? 'checkmark-circle' : 'checkmark-circle-outline'}
-                            size={18}
-                            color={item.status === 'PAID' ? Colors.success : Colors.textSecondary}
-                        />
-                        <Text style={{
-                            color: item.status === 'PAID' ? Colors.success : Colors.textSecondary,
-                            fontSize: 13, fontWeight: '600',
-                        }}>
-                            {item.status === 'PAID' ? 'Ödendi' : 'Öde'}
+                        <Text style={styles.debtAmountText}>
+                            ₺ {formatMoney(item.amount)}
                         </Text>
-                    </TouchableOpacity>
-                </View>
-            </TouchableOpacity>
+                    </View>
+
+                    {/* 2. Alt Satır: Açıklama, Son Ödeme Tarihi, Karşısında Ödenecek Tutar */}
+                    <View style={[styles.cardRow, { marginTop: 4 }]}>
+                        <View style={styles.leftRowGroup}>
+                            <Text style={styles.descText} numberOfLines={1}>
+                                {item.description || typeEmoji(item.type)}
+                            </Text>
+                            <View style={styles.dueDateBadge}>
+                                <Ionicons
+                                    name="calendar-outline"
+                                    size={11}
+                                    color={isOverdue ? Colors.error : Colors.textSecondary}
+                                />
+                                <Text style={[styles.dueDateText, isOverdue && { color: Colors.error, fontWeight: '700' }]}>
+                                    SÖ: {formatDate(item.dueDate)}
+                                </Text>
+                            </View>
+                        </View>
+
+                        <Text style={[styles.paymentAmountText, isPaid && { color: Colors.textSecondary }]}>
+                            {item.paymentAmount && item.paymentAmount !== item.amount
+                                ? `Ödenecek: ₺ ${formatMoney(item.paymentAmount)}`
+                                : (isPaid ? 'Ödendi' : `₺ ${formatMoney(item.amount)}`)}
+                        </Text>
+                    </View>
+                </TouchableOpacity>
+
+                {/* Sağ Taraf: Her İki Satırı Kapsayan Dikey Durum Rengi Barı */}
+                <TouchableOpacity
+                    style={[styles.verticalStatusBar, { backgroundColor: statusColor }]}
+                    activeOpacity={0.7}
+                    onPress={() => setActionPayment(item)}
+                >
+                    <Ionicons
+                        name={isPaid ? 'checkmark-circle' : isOverdue ? 'alert-circle' : 'time'}
+                        size={18}
+                        color="#fff"
+                    />
+                    <Text style={styles.verticalStatusText}>
+                        {isPaid ? 'ÖDENDİ' : isOverdue ? 'GECİKTİ' : 'BEKLİYOR'}
+                    </Text>
+                </TouchableOpacity>
+            </View>
         );
     };
 
@@ -539,6 +537,91 @@ export default function PaymentsScreen() {
                     </View>
                 </View>
             </Modal>
+
+            {/* Durum Rengine Dokunulduğunda Açılan İşlem Seçenekleri Modalı */}
+            <Modal visible={!!actionPayment} animationType="fade" transparent onRequestClose={() => setActionPayment(null)}>
+                <TouchableOpacity
+                    style={styles.actionModalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setActionPayment(null)}
+                >
+                    <View style={styles.actionModalSheet}>
+                        <View style={styles.actionModalHeader}>
+                            <Text style={styles.actionModalTitle} numberOfLines={1}>
+                                {actionPayment?.institution || actionPayment?.description}
+                            </Text>
+                            <Text style={styles.actionModalSub}>
+                                ₺ {formatMoney(actionPayment?.amount)}
+                            </Text>
+                        </View>
+
+                        {/* Durum Değiştir Butonu */}
+                        <TouchableOpacity
+                            style={[
+                                styles.actionBtn,
+                                { backgroundColor: actionPayment?.status === 'PAID' ? 'rgba(255,149,0,0.15)' : 'rgba(50,215,75,0.15)' }
+                            ]}
+                            onPress={() => {
+                                const target = actionPayment;
+                                setActionPayment(null);
+                                handleStatusToggle(target);
+                            }}
+                        >
+                            <Ionicons
+                                name={actionPayment?.status === 'PAID' ? 'time' : 'checkmark-circle'}
+                                size={20}
+                                color={actionPayment?.status === 'PAID' ? '#ff9500' : '#32d74b'}
+                            />
+                            <Text style={[
+                                styles.actionBtnText,
+                                { color: actionPayment?.status === 'PAID' ? '#ff9500' : '#32d74b' }
+                            ]}>
+                                {actionPayment?.status === 'PAID' ? 'Bekliyor Olarak İşaretle' : 'Ödendi Olarak İşaretle'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Düzenle Butonu */}
+                        <TouchableOpacity
+                            style={styles.actionBtn}
+                            onPress={() => {
+                                const target = actionPayment;
+                                setActionPayment(null);
+                                handleEdit(target);
+                            }}
+                        >
+                            <Ionicons name="create-outline" size={20} color={Colors.primary} />
+                            <Text style={[styles.actionBtnText, { color: Colors.primary }]}>
+                                Ödemeyi Düzenle
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Sil Butonu */}
+                        <TouchableOpacity
+                            style={[styles.actionBtn, { backgroundColor: 'rgba(255,69,58,0.1)' }]}
+                            onPress={() => {
+                                const target = actionPayment;
+                                setActionPayment(null);
+                                handleDelete(target);
+                            }}
+                        >
+                            <Ionicons name="trash-outline" size={20} color={Colors.error} />
+                            <Text style={[styles.actionBtnText, { color: Colors.error }]}>
+                                Ödemeyi Sil
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Kapat Butonu */}
+                        <TouchableOpacity
+                            style={[styles.actionBtn, { marginTop: 6, backgroundColor: 'rgba(255,255,255,0.06)' }]}
+                            onPress={() => setActionPayment(null)}
+                        >
+                            <Text style={[styles.actionBtnText, { color: Colors.textSecondary }]}>
+                                Kapat
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 }
@@ -553,46 +636,162 @@ const styles = StyleSheet.create({
         width: 44, height: 44, borderRadius: 14,
         alignItems: 'center', justifyContent: 'center',
     },
-    filterBar: { paddingHorizontal: 15, marginVertical: 15, flexGrow: 0 },
+    filterBar: { paddingHorizontal: 15, marginVertical: 12, flexGrow: 0 },
     filterChip: {
-        paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+        paddingHorizontal: 14, paddingVertical: 6, borderRadius: 18,
         marginRight: 8, backgroundColor: Colors.surface,
         borderWidth: 1, borderColor: Colors.border,
     },
     filterActive: { backgroundColor: Colors.primary + '20', borderColor: Colors.primary },
-    filterText: { color: Colors.textSecondary, fontSize: 13 },
+    filterText: { color: Colors.textSecondary, fontSize: 12.5 },
     filterActiveText: { color: Colors.primary, fontWeight: '600' },
-    paymentCard: {
-        backgroundColor: Colors.surface, borderRadius: 16, padding: 16,
-        marginBottom: 12, borderWidth: 1, borderColor: Colors.border,
+
+    // Kompakt 2 Satırlı Ödeme Kartı
+    compactPaymentCard: {
+        flexDirection: 'row',
+        backgroundColor: Colors.surface,
+        borderRadius: 12,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
+        overflow: 'hidden',
     },
-    paymentHeader: { flexDirection: 'row', alignItems: 'center' },
-    paymentInstitution: { color: '#fff', fontSize: 16, fontWeight: '600' },
-    paymentDesc: { color: Colors.textSecondary, fontSize: 12, marginTop: 2 },
-    paymentDetails: {
-        flexDirection: 'row', justifyContent: 'space-between',
-        alignItems: 'center', marginTop: 12,
+    cardContentArea: {
+        flex: 1,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        justifyContent: 'center',
     },
-    detailItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    detailText: { color: Colors.textSecondary, fontSize: 12 },
-    statusBadge: {
-        flexDirection: 'row', alignItems: 'center',
-        paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, gap: 5,
+    cardRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
-    statusDot: { width: 6, height: 6, borderRadius: 3 },
-    statusText: { fontSize: 12, fontWeight: '600' },
-    paymentFooter: {
-        flexDirection: 'row', justifyContent: 'space-between',
-        alignItems: 'center', marginTop: 12, paddingTop: 12,
-        borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)',
+    leftRowGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        flex: 1,
+        marginRight: 10,
+        overflow: 'hidden',
     },
-    paymentAmount: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-    toggleBtn: {
-        flexDirection: 'row', alignItems: 'center', gap: 5,
-        paddingHorizontal: 14, paddingVertical: 8,
-        borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)',
+    institutionText: {
+        color: '#fff',
+        fontSize: 14.5,
+        fontWeight: '700',
+        maxWidth: 150,
     },
-    toggleBtnPaid: { backgroundColor: 'rgba(50,215,75,0.1)' },
+    statementText: {
+        fontSize: 10.5,
+        color: Colors.textSecondary,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 4,
+    },
+    debtAmountText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: 'bold',
+        textAlign: 'right',
+    },
+    descText: {
+        color: Colors.textSecondary,
+        fontSize: 12,
+        maxWidth: 130,
+    },
+    dueDateBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+    },
+    dueDateText: {
+        color: Colors.textSecondary,
+        fontSize: 11,
+    },
+    paymentAmountText: {
+        color: Colors.primary,
+        fontSize: 12.5,
+        fontWeight: '600',
+        textAlign: 'right',
+    },
+    miniRecurringBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 2,
+        backgroundColor: 'rgba(56, 189, 248, 0.15)',
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 4,
+    },
+    miniRecurringText: {
+        color: Colors.primary,
+        fontSize: 9.5,
+        fontWeight: '700',
+    },
+
+    // Sağ Dikey Durum Rengi Barı
+    verticalStatusBar: {
+        width: 38,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 6,
+        gap: 4,
+    },
+    verticalStatusText: {
+        color: '#fff',
+        fontSize: 8,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+
+    // İşlem Seçenekleri Modalı
+    actionModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.65)',
+        justifyContent: 'flex-end',
+        padding: 16,
+    },
+    actionModalSheet: {
+        backgroundColor: '#1a1a2e',
+        borderRadius: 20,
+        padding: 18,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    actionModalHeader: {
+        alignItems: 'center',
+        marginBottom: 10,
+        paddingBottom: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.08)',
+    },
+    actionModalTitle: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    actionModalSub: {
+        color: Colors.primary,
+        fontSize: 14,
+        fontWeight: '600',
+        marginTop: 2,
+    },
+    actionBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 13,
+        borderRadius: 12,
+        backgroundColor: Colors.surface,
+    },
+    actionBtnText: {
+        fontSize: 14.5,
+        fontWeight: '600',
+    },
+
     emptyState: { alignItems: 'center', paddingTop: 80 },
     // Modal
     modalOverlay: {

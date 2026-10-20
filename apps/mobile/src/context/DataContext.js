@@ -23,6 +23,7 @@ import {
 import { checkForUpdates } from '../services/UpdateService';
 import { fetchTCMBRates, convertToTRY as convertToTRYHelper, DEFAULT_RATES } from '../services/CurrencyService';
 import { formatDate } from '../utils/dateUtils';
+import { getSavedOrdering, saveOrdering, sortAccountsWithOrder } from '../services/accountOrderService';
 
 const DataContext = createContext();
 
@@ -91,7 +92,9 @@ export function DataProvider({ children }) {
         setDataLoading(true);
         try {
             const { data: accData } = await supabase.from('accounts').select('*').eq('user_id', userId);
-            setAccounts((accData || []).map(mapAccountFromDB));
+            const mappedAccounts = (accData || []).map(mapAccountFromDB);
+            const { institutionOrder, accountOrder } = await getSavedOrdering();
+            setAccounts(sortAccountsWithOrder(mappedAccounts, institutionOrder, accountOrder));
 
             const { data: payData } = await supabase.from('payments').select('*').eq('user_id', userId);
             setPayments((payData || []).map(mapPaymentFromDB));
@@ -423,9 +426,14 @@ export function DataProvider({ children }) {
         return `${intPart},${decimalPart}`;
     };
 
+    const saveAccountOrder = useCallback(async (newAccounts) => {
+        setAccounts(newAccounts);
+        await saveOrdering(newAccounts);
+    }, []);
+
     const value = {
         session, authLoading, dataLoading,
-        accounts, payments, receivables, userProfile,
+        accounts, setAccounts, saveAccountOrder, payments, receivables, userProfile,
         addPayment, updatePayment, deletePayment,
         addAccount, updateAccount, deleteAccount,
         addReceivable, updateReceivable, deleteReceivable,

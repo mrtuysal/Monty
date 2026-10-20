@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { supabase } from '../lib/supabase';
 import { mapPaymentFromDB, mapPaymentToDB, mapAccountFromDB, mapAccountToDB } from '../lib/mappers';
 import { fetchTCMBRates, convertToTRY as convertToTRYHelper, DEFAULT_RATES } from '../lib/currencyService';
+import { applyOrdering, saveOrdering } from '../lib/accountOrderService';
 
 const DataContext = createContext();
 
@@ -45,7 +46,8 @@ export function DataProvider({ children }) {
                 .eq('user_id', userId);
 
             if (accError) throw accError;
-            setAccounts((accData || []).map(mapAccountFromDB));
+            const mappedAccounts = (accData || []).map(mapAccountFromDB);
+            setAccounts(applyOrdering(mappedAccounts));
 
             // 2. Fetch Payments
             const { data: payData, error: payError } = await supabase
@@ -701,9 +703,15 @@ export function DataProvider({ children }) {
         return `${symbol} ${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
+    const saveAccountOrder = (newAccounts) => {
+        saveOrdering(newAccounts);
+        setAccounts(newAccounts);
+    };
+
     const value = {
         accounts,
         setAccounts,
+        saveAccountOrder,
         addAccount,
         updateAccount,
         deleteAccount,

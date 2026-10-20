@@ -13,7 +13,7 @@ import { useData } from '../context/DataContext';
 
 
 export default function Accounts() {
-    const { accounts, setAccounts, addAccount, updateAccount, deleteAccount } = useData();
+    const { accounts, setAccounts, saveAccountOrder, addAccount, updateAccount, deleteAccount } = useData();
 
     // Modal States
     const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState(false);
@@ -84,7 +84,7 @@ export default function Accounts() {
                 newAccounts.push(...accounts.filter(a => a.institution === inst));
             });
 
-            setAccounts(newAccounts);
+            saveAccountOrder(newAccounts);
             return;
         }
 
@@ -109,7 +109,7 @@ export default function Accounts() {
                 }
             });
 
-            setAccounts(newAccounts);
+            saveAccountOrder(newAccounts);
         }
     };
 
