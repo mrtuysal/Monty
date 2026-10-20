@@ -6,7 +6,17 @@
  */
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
+// Aktif ve kararlı modeller listesi (Öncelik: gemini-1.5-flash)
+const CANDIDATE_MODELS = [
+    import.meta.env.VITE_GEMINI_MODEL,
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-2.5-flash'
+].filter(Boolean);
+
+const getGeminiUrl = (modelName) =>
+    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
 const EXTRACTION_PROMPT = `Sen bir Türk fatura ve banka ekstresi uzmanısın. Verilen belge görselini analiz et ve ödeme bilgilerini çıkar.
 
@@ -108,15 +118,35 @@ export const extractPaymentsFromFile = async (file) => {
             }
         };
 
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
+        let response = null;
+        let lastError = null;
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error?.message || `API hatası: ${response.status}`);
+        for (const model of CANDIDATE_MODELS) {
+            try {
+                const url = `${getGeminiUrl(model)}?key=${GEMINI_API_KEY}`;
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (res.ok) {
+                    response = res;
+                    break;
+                } else {
+                    const errorData = await res.json().catch(() => ({}));
+                    const msg = errorData.error?.message || `API hatası: ${res.status}`;
+                    lastError = new Error(`${model}: ${msg}`);
+                    console.warn(`Gemini model [${model}] başarısız, sıradaki deneniyor:`, msg);
+                }
+            } catch (err) {
+                lastError = err;
+                console.warn(`Gemini model [${model}] ağ hatası:`, err.message);
+            }
+        }
+
+        if (!response) {
+            throw lastError || new Error('Kullanılabilir bir Gemini modeli bulunamadı.');
         }
 
         const data = await response.json();
