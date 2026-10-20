@@ -1,14 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import Layout from '../components/Layout';
 import { useData } from '../context/DataContext';
-import { FaWallet, FaMoneyBillWave, FaArrowRight, FaCreditCard, FaFileInvoiceDollar, FaEllipsisH, FaChevronLeft, FaChevronRight, FaHandshake } from 'react-icons/fa';
+import {
+    FaWallet, FaMoneyBillWave, FaArrowRight, FaCreditCard,
+    FaFileInvoiceDollar, FaEllipsisH, FaChevronLeft, FaChevronRight,
+    FaHandshake, FaCalendarWeek, FaCheckCircle, FaRegCircle
+} from 'react-icons/fa';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
-    const { accounts, payments, receivables, dataLoading, convertToTRY } = useData();
+    const { accounts, payments, receivables, dataLoading, convertToTRY, updatePayment, addPayment } = useData();
     const navigate = useNavigate();
     const [selectedCategory, setSelectedCategory] = useState(null); // 'CREDIT_CARD', 'BILL', 'OTHER'
+    const [weekOffset, setWeekOffset] = useState(0); // 0 = Bu Hafta, -1 = Önceki Hafta, 1 = Sonraki Hafta
 
     // Date State
     const [selectedDate, setSelectedDate] = useState({
@@ -124,6 +129,131 @@ export default function Dashboard() {
             case 'BILL': return 'Faturalar';
             default: return 'Diğer';
         }
+    };
+
+    // Weekly Payments Calculation
+    const weekRange = useMemo(() => {
+        const now = new Date();
+        const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (weekOffset * 7));
+        
+        // Monday is day 1 (0 is Sunday)
+        const day = targetDate.getDay();
+        const diffToMonday = day === 0 ? -6 : 1 - day;
+        
+        const monday = new Date(targetDate);
+        monday.setDate(targetDate.getDate() + diffToMonday);
+        monday.setHours(0, 0, 0, 0);
+
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+
+        return { monday, sunday, isCurrentWeek: weekOffset === 0 };
+    }, [weekOffset]);
+
+    const weeklyPayments = useMemo(() => {
+        const { monday, sunday } = weekRange;
+        return (payments || []).filter(p => {
+            if (!p.dueDate) return false;
+            const parts = p.dueDate.split('-');
+            if (parts.length < 3) return false;
+            const dueDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            return dueDate >= monday && dueDate <= sunday;
+        }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    }, [payments, weekRange]);
+
+    const weeklyStats = useMemo(() => {
+        let total = 0;
+        let paid = 0;
+        let pending = 0;
+        let paidCount = 0;
+        let pendingCount = 0;
+
+        weeklyPayments.forEach(p => {
+            const amt = parseFloat(p.amount) || 0;
+            const toPay = parseFloat(p.paymentAmount) || amt;
+            total += amt;
+            if (p.status === 'PAID') {
+                paid += amt;
+                paidCount++;
+            } else {
+                pending += toPay;
+                pendingCount++;
+            }
+        });
+
+        return { total, paid, pending, paidCount, pendingCount, count: weeklyPayments.length };
+    }, [weeklyPayments]);
+
+    const addPeriod = (dateStr, freq) => {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        if (freq === 'WEEKLY') d.setDate(d.getDate() + 7);
+        else if (freq === 'QUARTERLY') d.setMonth(d.getMonth() + 3);
+        else if (freq === 'YEARLY') d.setFullYear(d.getFullYear() + 1);
+        else d.setMonth(d.getMonth() + 1);
+        return d.toISOString().split('T')[0];
+    };
+
+    const handleToggleWeeklyPayment = (e, payment) => {
+        e.stopPropagation();
+        const isCurrentlyPaid = payment.status === 'PAID';
+        const newStatus = isCurrentlyPaid ? 'PENDING' : 'PAID';
+        const updatedPayment = { ...payment, status: newStatus };
+        
+        if (updatePayment) {
+            updatePayment(updatedPayment);
+        }
+
+        if (newStatus === 'PAID' && payment.isRecurring && addPayment) {
+            const nextDueDate = addPeriod(payment.dueDate, payment.recurringFrequency);
+            const alreadyExists = (payments || []).some(p =>
+                p.institution === payment.institution &&
+                p.type === payment.type &&
+                p.dueDate === nextDueDate
+            );
+
+            if (!alreadyExists) {
+                const nextPayment = { ...payment };
+                delete nextPayment.id;
+                nextPayment.status = 'PENDING';
+                nextPayment.dueDate = nextDueDate;
+                if (payment.statementDate) {
+                    nextPayment.statementDate = addPeriod(payment.statementDate, payment.recurringFrequency);
+                }
+                if (payment.type === 'CREDIT_CARD') {
+                    nextPayment.amount = 0;
+                    nextPayment.minPayment = 0;
+                    nextPayment.paymentAmount = 0;
+                    nextPayment.balance = 0;
+                } else {
+                    nextPayment.paymentAmount = nextPayment.amount;
+                    nextPayment.balance = 0;
+                }
+                addPayment(nextPayment);
+            }
+        }
+    };
+
+    const getRelativeDayLabel = (dateStr) => {
+        if (!dateStr) return '';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const parts = dateStr.split('-');
+        const target = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        target.setHours(0, 0, 0, 0);
+
+        const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+        const dayNames = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+        const dayName = dayNames[target.getDay()];
+
+        if (diffDays === 0) return `Bugün (${dayName})`;
+        if (diffDays === 1) return `Yarın (${dayName})`;
+        if (diffDays === -1) return `Dün (${dayName})`;
+        if (diffDays > 1 && diffDays <= 6) return `${diffDays} gün sonra (${dayName})`;
+        if (diffDays < -1) return `${Math.abs(diffDays)} gün önce (${dayName})`;
+        return `${dayName}, ${target.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}`;
     };
 
     return (
@@ -349,6 +479,282 @@ export default function Dashboard() {
                     <div style={{ color: 'var(--text-muted)', marginLeft: '15px' }}>
                         <FaArrowRight size={20} />
                     </div>
+                </div>
+
+                {/* Haftalık Ödeme Listesi */}
+                <div className="glass-panel" style={{
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '22px 25px',
+                    border: '1px solid var(--border)',
+                    background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(20, 20, 20, 0.6) 100%)'
+                }}>
+                    {/* Header & Week Controls */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '18px',
+                        flexWrap: 'wrap',
+                        gap: '12px'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                                width: '42px',
+                                height: '42px',
+                                borderRadius: '10px',
+                                background: 'rgba(var(--primary-rgb, 108, 99, 255), 0.15)',
+                                color: 'var(--primary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '20px'
+                            }}>
+                                <FaCalendarWeek />
+                            </div>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#fff', fontWeight: '700' }}>
+                                        Haftalık Ödeme Listesi
+                                    </h2>
+                                    {weekOffset === 0 ? (
+                                        <span style={{
+                                            fontSize: '11px',
+                                            fontWeight: '700',
+                                            padding: '2px 8px',
+                                            borderRadius: '12px',
+                                            background: 'rgba(76, 175, 80, 0.2)',
+                                            color: '#4caf50'
+                                        }}>
+                                            Bu Hafta
+                                        </span>
+                                    ) : (
+                                        <span style={{
+                                            fontSize: '11px',
+                                            fontWeight: '600',
+                                            padding: '2px 8px',
+                                            borderRadius: '12px',
+                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            color: 'var(--text-muted)'
+                                        }}>
+                                            {weekOffset > 0 ? `+${weekOffset} Hafta Sonra` : `${Math.abs(weekOffset)} Hafta Önce`}
+                                        </span>
+                                    )}
+                                </div>
+                                <div style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '3px' }}>
+                                    {weekRange.monday.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} – {weekRange.sunday.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Navigation & Action Buttons */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                                className="btn btn-secondary"
+                                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                                onClick={() => setWeekOffset(prev => prev - 1)}
+                                title="Önceki Hafta"
+                            >
+                                <FaChevronLeft size={10} /> Önceki
+                            </button>
+                            {weekOffset !== 0 && (
+                                <button
+                                    className="btn btn-secondary"
+                                    style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--primary)', borderColor: 'var(--primary)' }}
+                                    onClick={() => setWeekOffset(0)}
+                                >
+                                    Bugün
+                                </button>
+                            )}
+                            <button
+                                className="btn btn-secondary"
+                                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                                onClick={() => setWeekOffset(prev => prev + 1)}
+                                title="Sonraki Hafta"
+                            >
+                                Sonraki <FaChevronRight size={10} />
+                            </button>
+                            <button
+                                className="btn btn-primary"
+                                style={{ padding: '6px 14px', fontSize: '12px', marginLeft: '6px' }}
+                                onClick={() => navigate('/payments')}
+                            >
+                                Tüm Ödemeler →
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Weekly Mini Summary Bar */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                        gap: '12px',
+                        marginBottom: '18px'
+                    }}>
+                        <div style={{
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            padding: '12px 16px',
+                            borderRadius: '10px',
+                            borderLeft: '3px solid var(--primary)'
+                        }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Haftalık Toplam</span>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#fff', marginTop: '3px' }}>
+                                {formatCurrency(weeklyStats.total)}
+                            </div>
+                            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{weeklyStats.count} ödeme planlandı</span>
+                        </div>
+
+                        <div style={{
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            padding: '12px 16px',
+                            borderRadius: '10px',
+                            borderLeft: '3px solid var(--success, #10b981)'
+                        }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ödenen</span>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--success, #10b981)', marginTop: '3px' }}>
+                                {formatCurrency(weeklyStats.paid)}
+                            </div>
+                            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{weeklyStats.paidCount} tamamlandı</span>
+                        </div>
+
+                        <div style={{
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            padding: '12px 16px',
+                            borderRadius: '10px',
+                            borderLeft: '3px solid var(--warning, #f59e0b)'
+                        }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Kalan Ödenecek</span>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--warning, #f59e0b)', marginTop: '3px' }}>
+                                {formatCurrency(weeklyStats.pending)}
+                            </div>
+                            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{weeklyStats.pendingCount} bekliyor</span>
+                        </div>
+                    </div>
+
+                    {/* Weekly Payments Table / List */}
+                    {weeklyPayments.length === 0 ? (
+                        <div style={{
+                            padding: '36px 20px',
+                            textAlign: 'center',
+                            background: 'rgba(255, 255, 255, 0.015)',
+                            borderRadius: '10px',
+                            border: '1px dashed rgba(255, 255, 255, 0.1)'
+                        }}>
+                            <div style={{ fontSize: '30px', marginBottom: '8px' }}>🎉</div>
+                            <div style={{ color: '#fff', fontWeight: '600', fontSize: '14px' }}>
+                                Bu hafta için planlanmış bir ödemeniz bulunmuyor.
+                            </div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
+                                Başka haftaları incelemek için yukarıdaki butonları kullanabilir veya yeni ödeme ekleyebilirsiniz.
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {weeklyPayments.map(p => {
+                                const isPaid = p.status === 'PAID';
+                                const isOverdue = !isPaid && new Date(p.dueDate) < new Date();
+                                return (
+                                    <div
+                                        key={p.id}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '12px 16px',
+                                            background: isPaid ? 'rgba(76, 175, 80, 0.04)' : isOverdue ? 'rgba(255, 69, 58, 0.07)' : 'rgba(255, 255, 255, 0.03)',
+                                            borderRadius: '10px',
+                                            border: isPaid ? '1px solid rgba(76, 175, 80, 0.2)' : isOverdue ? '1px solid rgba(255, 69, 58, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
+                                            transition: 'all 0.15s',
+                                            gap: '15px'
+                                        }}
+                                    >
+                                        {/* Status Toggle Button */}
+                                        <button
+                                            onClick={(e) => handleToggleWeeklyPayment(e, p)}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                padding: '2px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                color: isPaid ? '#4caf50' : isOverdue ? '#ff453a' : 'var(--text-muted)',
+                                                fontSize: '20px',
+                                                transition: 'transform 0.15s'
+                                            }}
+                                            title={isPaid ? 'Ödenmedi olarak işaretle' : 'Ödendi olarak işaretle'}
+                                        >
+                                            {isPaid ? <FaCheckCircle /> : <FaRegCircle />}
+                                        </button>
+
+                                        {/* Category Icon & Info */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                                            <div style={{
+                                                width: '36px',
+                                                height: '36px',
+                                                borderRadius: '8px',
+                                                background: 'rgba(255, 255, 255, 0.06)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: 'var(--text-muted)',
+                                                fontSize: '15px',
+                                                flexShrink: 0
+                                            }}>
+                                                {getCategoryIcon(p.type)}
+                                            </div>
+                                            <div style={{ overflow: 'hidden' }}>
+                                                <div style={{
+                                                    color: isPaid ? 'var(--text-muted)' : '#fff',
+                                                    fontWeight: '600',
+                                                    fontSize: '13.5px',
+                                                    textDecoration: isPaid ? 'line-through' : 'none',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis'
+                                                }}>
+                                                    {p.institution}
+                                                </div>
+                                                <div style={{ color: 'var(--text-muted)', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {p.description || getCategoryLabel(p.type)}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Due Date & Relative Day */}
+                                        <div style={{ textAlign: 'right', minWidth: '130px' }}>
+                                            <div style={{
+                                                fontSize: '12.5px',
+                                                fontWeight: '600',
+                                                color: isPaid ? 'var(--text-muted)' : isOverdue ? '#ff453a' : '#fff'
+                                            }}>
+                                                {getRelativeDayLabel(p.dueDate)}
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                                {new Date(p.dueDate).toLocaleDateString('tr-TR')}
+                                            </div>
+                                        </div>
+
+                                        {/* Amount */}
+                                        <div style={{ textAlign: 'right', minWidth: '120px' }}>
+                                            <div style={{
+                                                fontSize: '14.5px',
+                                                fontWeight: 'bold',
+                                                color: isPaid ? 'var(--text-muted)' : '#fff',
+                                                textDecoration: isPaid ? 'line-through' : 'none'
+                                            }}>
+                                                {formatCurrency(p.amount)}
+                                            </div>
+                                            {p.paymentAmount && p.paymentAmount !== p.amount && (
+                                                <div style={{ fontSize: '11px', color: 'var(--primary)' }}>
+                                                    Ödenecek: {formatCurrency(p.paymentAmount)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 {/* Row 3: Payment Breakdown Cards */}
