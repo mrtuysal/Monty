@@ -14,6 +14,7 @@
 
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { formatDate } from '../utils/dateUtils';
 
 // ─────────────────────────────────────────────
 //  Setup & Configuration
@@ -267,7 +268,7 @@ export const buildOverdueMessage = (payments) => {
 
     if (payments.length === 1) {
         const p = payments[0];
-        const dueStr = new Date(p.dueDate).toLocaleDateString('tr-TR');
+        const dueStr = formatDate(p.dueDate);
         return {
             title: '❗ Gecikmiş Ödeme!',
             body: `${p.institution || p.description} — Son ödeme: ${dueStr}`

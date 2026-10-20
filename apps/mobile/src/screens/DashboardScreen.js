@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useData } from '../context/DataContext';
 
 export default function DashboardScreen({ navigation }) {
-    const { accounts, payments, receivables, userProfile, session, formatMoney, dataLoading, convertToTRY } = useData();
+    const { accounts, payments, receivables, userProfile, session, formatMoney, formatDate, dataLoading, convertToTRY } = useData();
 
     const financials = useMemo(() => {
         let total = 0, cash = 0, bank = 0;
@@ -174,7 +174,7 @@ export default function DashboardScreen({ navigation }) {
                                         {item.institution || item.description || 'Ödeme'}
                                     </Text>
                                     <Text style={styles.paymentDate}>
-                                        {item.dueDate || '—'}
+                                        {formatDate(item.dueDate)}
                                     </Text>
                                 </View>
                                 <Text style={styles.paymentAmount}>

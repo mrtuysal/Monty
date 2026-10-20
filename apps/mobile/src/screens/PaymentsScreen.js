@@ -43,7 +43,7 @@ const initialForm = {
 };
 
 export default function PaymentsScreen() {
-    const { payments, addPayment, updatePayment, deletePayment, formatMoney } = useData();
+    const { payments, addPayment, updatePayment, deletePayment, formatMoney, formatDate } = useData();
     const [modalVisible, setModalVisible] = useState(false);
     const [form, setForm] = useState(initialForm);
     const [filter, setFilter] = useState('ALL');
@@ -199,7 +199,7 @@ export default function PaymentsScreen() {
                 <View style={styles.paymentDetails}>
                     <View style={styles.detailItem}>
                         <Ionicons name="calendar-outline" size={14} color={Colors.textSecondary} />
-                        <Text style={styles.detailText}>{item.dueDate || '—'}</Text>
+                        <Text style={styles.detailText}>{formatDate(item.dueDate)}</Text>
                     </View>
                     <View style={[styles.statusBadge, { backgroundColor: status.color + '20' }]}>
                         <View style={[styles.statusDot, { backgroundColor: status.color }]} />
@@ -350,7 +350,7 @@ export default function PaymentsScreen() {
                                         style={styles.modalInput}
                                         placeholder="Tarih seçin..."
                                         placeholderTextColor={Colors.textSecondary}
-                                        value={form.dueDate}
+                                        value={form.dueDate ? formatDate(form.dueDate) : ''}
                                         editable={false}
                                     />
                                 </View>
@@ -365,7 +365,7 @@ export default function PaymentsScreen() {
                                                 style={styles.modalInput}
                                                 placeholder="Tarih seçin..."
                                                 placeholderTextColor={Colors.textSecondary}
-                                                value={form.statementDate}
+                                                value={form.statementDate ? formatDate(form.statementDate) : ''}
                                                 editable={false}
                                             />
                                         </View>

@@ -22,6 +22,7 @@ import {
 } from '../services/NotificationService';
 import { checkForUpdates } from '../services/UpdateService';
 import { fetchTCMBRates, convertToTRY as convertToTRYHelper, DEFAULT_RATES } from '../services/CurrencyService';
+import { formatDate } from '../utils/dateUtils';
 
 const DataContext = createContext();
 
@@ -428,7 +429,7 @@ export function DataProvider({ children }) {
         addPayment, updatePayment, deletePayment,
         addAccount, updateAccount, deleteAccount,
         addReceivable, updateReceivable, deleteReceivable,
-        updateUserProfile, signOut, fetchData, formatMoney,
+        updateUserProfile, signOut, fetchData, formatMoney, formatDate,
         currencyRates,
         convertToTRY: (amount, currency) => convertToTRYHelper(amount, currency, currencyRates),
     };

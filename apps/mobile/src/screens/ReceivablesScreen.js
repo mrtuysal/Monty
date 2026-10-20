@@ -9,19 +9,36 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { Colors, Typography, Layout } from '../constants/Theme';
 import { useData } from '../context/DataContext';
 
+const parseDateInput = (val) => {
+    if (!val) return null;
+    const str = String(val).trim();
+    const trMatch = str.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+    if (trMatch) {
+        return `${trMatch[3]}-${trMatch[2].padStart(2, '0')}-${trMatch[1].padStart(2, '0')}`;
+    }
+    return str.split('T')[0];
+};
+
+const getTodayFormatted = () => {
+    const d = new Date();
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}.${month}.${d.getFullYear()}`;
+};
+
 const initialForm = {
     type: 'RECEIVABLE', // RECEIVABLE or DEBT
     person: '',
     description: '',
     amount: '',
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayFormatted(),
     dueDate: '',
     notes: '',
     status: 'PENDING',
 };
 
 export default function ReceivablesScreen() {
-    const { receivables, addReceivable, updateReceivable, deleteReceivable, formatMoney } = useData();
+    const { receivables, addReceivable, updateReceivable, deleteReceivable, formatMoney, formatDate } = useData();
 
     const [activeTab, setActiveTab] = useState('ALL'); // ALL, RECEIVABLE, DEBT
     const [modalVisible, setModalVisible] = useState(false);
@@ -62,7 +79,7 @@ export default function ReceivablesScreen() {
         setForm({
             ...initialForm,
             type: activeTab === 'DEBT' ? 'DEBT' : 'RECEIVABLE',
-            date: new Date().toISOString().split('T')[0]
+            date: getTodayFormatted()
         });
         setModalVisible(true);
     };
@@ -74,8 +91,8 @@ export default function ReceivablesScreen() {
             person: item.person || '',
             description: item.description || '',
             amount: item.amount ? String(item.amount) : '',
-            date: item.date || new Date().toISOString().split('T')[0],
-            dueDate: item.dueDate || item.due_date || '',
+            date: formatDate(item.date || new Date()),
+            dueDate: item.dueDate || item.due_date ? formatDate(item.dueDate || item.due_date) : '',
             notes: item.notes || '',
             status: item.status || 'PENDING',
         });
@@ -98,8 +115,8 @@ export default function ReceivablesScreen() {
             person: form.person.trim(),
             description: form.description.trim(),
             amount: parsedAmount,
-            date: form.date || new Date().toISOString().split('T')[0],
-            dueDate: form.dueDate || null,
+            date: parseDateInput(form.date) || new Date().toISOString().split('T')[0],
+            dueDate: parseDateInput(form.dueDate),
             notes: form.notes.trim(),
             status: form.status,
         };
@@ -271,12 +288,12 @@ export default function ReceivablesScreen() {
                                 <View style={styles.dateGroup}>
                                     {item.date && (
                                         <Text style={styles.dateText}>
-                                            <Ionicons name="calendar-outline" size={12} /> {item.date}
+                                            <Ionicons name="calendar-outline" size={12} /> {formatDate(item.date)}
                                         </Text>
                                     )}
                                     {(item.dueDate || item.due_date) && (
                                         <Text style={[styles.dateText, { color: '#FF9500' }]}>
-                                            <Ionicons name="time-outline" size={12} /> Vade: {item.dueDate || item.due_date}
+                                            <Ionicons name="time-outline" size={12} /> Vade: {formatDate(item.dueDate || item.due_date)}
                                         </Text>
                                     )}
                                 </View>
@@ -395,7 +412,7 @@ export default function ReceivablesScreen() {
                                 <Text style={styles.inputLabel}>İşlem Tarihi</Text>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="YYYY-MM-DD"
+                                    placeholder="GG.AA.YYYY"
                                     placeholderTextColor={Colors.textSecondary}
                                     value={form.date}
                                     onChangeText={(val) => setForm(f => ({ ...f, date: val }))}
@@ -405,7 +422,7 @@ export default function ReceivablesScreen() {
                                 <Text style={styles.inputLabel}>Vade Tarihi</Text>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="YYYY-MM-DD (Opsiyonel)"
+                                    placeholder="GG.AA.YYYY (Opsiyonel)"
                                     placeholderTextColor={Colors.textSecondary}
                                     value={form.dueDate}
                                     onChangeText={(val) => setForm(f => ({ ...f, dueDate: val }))}
