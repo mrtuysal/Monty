@@ -279,7 +279,7 @@ export default function Dashboard() {
                             height: '40px',
                             paddingLeft: '38px',
                             paddingRight: '60px',
-                            background: '#141417',
+                            background: 'var(--bg-card)',
                             borderRadius: '12px',
                             border: '1px solid var(--border)',
                             color: 'var(--text-main)',
@@ -311,7 +311,7 @@ export default function Dashboard() {
                         gap: '6px',
                         padding: '6px 12px',
                         borderRadius: '12px',
-                        background: '#141417',
+                        background: 'var(--bg-card)',
                         border: '1px solid var(--border)',
                         fontSize: '12px',
                         fontWeight: '600',
@@ -324,7 +324,7 @@ export default function Dashboard() {
                             style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '12px', fontWeight: '600' }}
                         >
                             {MONTHS.map((m, i) => (
-                                <option key={i} value={i} style={{ background: '#141417' }}>{m}</option>
+                                <option key={i} value={i} style={{ background: 'var(--bg-card)' }}>{m}</option>
                             ))}
                         </select>
                         <select
@@ -334,7 +334,7 @@ export default function Dashboard() {
                             style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '12px', fontWeight: '600' }}
                         >
                             {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 3 + i).map(y => (
-                                <option key={y} value={y} style={{ background: '#141417' }}>{y}</option>
+                                <option key={y} value={y} style={{ background: 'var(--bg-card)' }}>{y}</option>
                             ))}
                         </select>
                     </div>
@@ -417,7 +417,7 @@ export default function Dashboard() {
                         className="card card-clickable"
                         onClick={() => navigate('/accounts')}
                         style={{
-                            background: '#141417',
+                            background: 'var(--bg-card)',
                             border: '1px solid var(--border)',
                             borderRadius: '16px',
                             padding: '18px 20px',
@@ -485,7 +485,7 @@ export default function Dashboard() {
                         className="card card-clickable"
                         onClick={() => navigate('/payments')}
                         style={{
-                            background: '#141417',
+                            background: 'var(--bg-card)',
                             border: '1px solid var(--border)',
                             borderRadius: '16px',
                             padding: '18px 20px',
@@ -549,7 +549,7 @@ export default function Dashboard() {
                         className="card card-clickable"
                         onClick={() => navigate('/payments')}
                         style={{
-                            background: '#141417',
+                            background: 'var(--bg-card)',
                             border: '1px solid var(--border)',
                             borderRadius: '16px',
                             padding: '18px 20px',
@@ -626,7 +626,7 @@ export default function Dashboard() {
                         className="card card-clickable"
                         onClick={() => navigate('/receivables')}
                         style={{
-                            background: '#141417',
+                            background: 'var(--bg-card)',
                             border: '1px solid var(--border)',
                             borderRadius: '16px',
                             padding: '18px 20px',

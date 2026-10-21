@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Colors, Typography, Layout } from '../constants/Theme';
 import { useData } from '../context/DataContext';
+import { useTheme } from '../context/ThemeContext';
 
 const parseDateInput = (val) => {
     if (!val) return null;
@@ -38,6 +39,7 @@ const initialForm = {
 };
 
 export default function ReceivablesScreen() {
+    const { colors, isDark } = useTheme();
     const { receivables, addReceivable, updateReceivable, deleteReceivable, formatMoney, formatDate } = useData();
 
     const [activeTab, setActiveTab] = useState('ALL'); // ALL, RECEIVABLE, DEBT
@@ -150,10 +152,10 @@ export default function ReceivablesScreen() {
     }, [updateReceivable]);
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={Typography.h1}>Alacak & Borç</Text>
+                <Text style={[Typography.h1, { color: colors.text }]}>Alacak & Borç</Text>
                 <TouchableOpacity onPress={handleOpenAdd}>
                     <LinearGradient
                         colors={[Colors.primary, '#5a52d5']}
@@ -629,7 +631,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     tabBtnTextActive: {
-        color: '#fff',
+        color: Colors.text,
     },
     listContent: {
         paddingHorizontal: Layout.screenPadding,
@@ -665,7 +667,7 @@ const styles = StyleSheet.create({
         marginRight: 10,
     },
     personText: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 15.5,
         fontWeight: 'bold',
         maxWidth: 160,
@@ -708,7 +710,7 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     verticalStatusText: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 8,
         fontWeight: '800',
         letterSpacing: 0.5,
@@ -737,7 +739,7 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(255,255,255,0.08)',
     },
     actionModalTitle: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },
@@ -790,7 +792,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     modalTitle: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 18,
         fontWeight: '700',
     },
@@ -828,7 +830,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         paddingHorizontal: 14,
         paddingVertical: 12,
-        color: '#fff',
+        color: Colors.text,
         fontSize: 15,
         borderWidth: 1,
         borderColor: Colors.border,
@@ -839,7 +841,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     saveBtnText: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 16,
         fontWeight: '600',
     },

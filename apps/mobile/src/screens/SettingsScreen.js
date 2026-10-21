@@ -4,8 +4,9 @@ import {
     Alert, TextInput, Switch, ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Layout } from '../constants/Theme';
+import { Colors, Typography, Layout, THEMES } from '../constants/Theme';
 import { useData } from '../context/DataContext';
+import { useTheme } from '../context/ThemeContext';
 import { sendNotification, DEFAULT_NOTIFICATION_PREFS } from '../services/NotificationService';
 import { checkForUpdates } from '../services/UpdateService';
 import pkg from '../../package.json';
@@ -71,6 +72,7 @@ const NOTIFICATION_ITEMS = [
 
 export default function SettingsScreen() {
     const { session, userProfile, updateUserProfile, signOut } = useData();
+    const { themeId, setThemeId, colors, isDark, toggleTheme } = useTheme();
 
     // Profile editing state
     const [editingProfile, setEditingProfile] = useState(false);
@@ -137,9 +139,9 @@ export default function SettingsScreen() {
     const notifPrefs = { ...DEFAULT_NOTIFICATION_PREFS, ...(userProfile.notificationPrefs || {}) };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                <Text style={[Typography.h1, { marginBottom: 25 }]}>Ayarlar</Text>
+                <Text style={[Typography.h1, { color: colors.text, marginBottom: 25 }]}>Ayarlar</Text>
 
                 {/* ═══════════════════════ Profile Card ═══════════════════════ */}
                 <View style={styles.section}>
@@ -253,22 +255,91 @@ export default function SettingsScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* ═══════════════════════ App Info ═══════════════════════ */}
-                <View style={styles.section}>
+                {/* ═══════════════════════ Tema & Görünüm ═══════════════════════ */}
+                <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     <View style={styles.sectionHeader}>
-                        <Ionicons name="information-circle-outline" size={20} color={Colors.textSecondary} />
-                        <Text style={styles.sectionTitle}>Uygulama</Text>
+                        <Ionicons name="color-palette-outline" size={20} color={colors.primary} />
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Tema & Görünüm</Text>
+                    </View>
+                    <Text style={[styles.sectionDesc, { color: colors.textSecondary }]}>
+                        Uygulama renk paletini ve aydınlık/koyu modunu seçin:
+                    </Text>
+
+                    <View style={styles.themeGrid}>
+                        {Object.values(THEMES).map(t => {
+                            const isSelected = themeId === t.id;
+                            return (
+                                <TouchableOpacity
+                                    key={t.id}
+                                    style={[
+                                        styles.themeCard,
+                                        {
+                                            backgroundColor: isSelected
+                                                ? (t.isDark ? '#1C1C21' : '#F1F5F9')
+                                                : colors.surfaceHigh,
+                                            borderColor: isSelected ? colors.primary : colors.border
+                                        }
+                                    ]}
+                                    onPress={() => setThemeId(t.id)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={styles.themeCardTop}>
+                                        <View style={styles.themePaletteRow}>
+                                            {t.preview.map((dotColor, idx) => (
+                                                <View
+                                                    key={idx}
+                                                    style={[styles.themeColorDot, { backgroundColor: dotColor }]}
+                                                />
+                                            ))}
+                                        </View>
+                                        <View style={[
+                                            styles.modeBadge,
+                                            { backgroundColor: t.isDark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.06)' }
+                                        ]}>
+                                            <Text style={[styles.modeBadgeText, { color: t.isDark ? '#E8F54A' : '#0284C7' }]}>
+                                                {t.isDark ? '🌙 Koyu' : '☀️ Aydınlık'}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+                                        <Text style={[styles.themeCardName, { color: colors.text }]}>
+                                            {t.name}
+                                        </Text>
+                                        {isSelected && (
+                                            <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+                                        )}
+                                    </View>
+                                    <Text style={[styles.themeCardSubtitle, { color: colors.textSecondary }]}>
+                                        {t.subtitle}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </View>
+
+                {/* ═══════════════════════ App Info ═══════════════════════ */}
+                <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <View style={styles.sectionHeader}>
+                        <Ionicons name="information-circle-outline" size={20} color={colors.textSecondary} />
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Uygulama</Text>
                     </View>
 
-                    <View style={styles.infoRow}>
-                        <View style={[styles.iconBox, { backgroundColor: 'rgba(0,188,212,0.15)' }]}>
-                            <Ionicons name="color-palette-outline" size={18} color="#00BCD4" />
+                    <TouchableOpacity
+                        style={styles.infoRow}
+                        onPress={toggleTheme}
+                        activeOpacity={0.7}
+                    >
+                        <View style={[styles.iconBox, { backgroundColor: colors.primaryContainer }]}>
+                            <Ionicons name={isDark ? "moon-outline" : "sunny-outline"} size={18} color={colors.primary} />
                         </View>
-                        <Text style={styles.infoTitle}>Tema</Text>
-                        <View style={styles.badge}>
-                            <Text style={styles.badgeText}>Koyu</Text>
+                        <Text style={[styles.infoTitle, { color: colors.text }]}>Aktif Tema Modu</Text>
+                        <View style={[styles.badge, { backgroundColor: isDark ? 'rgba(0,188,212,0.15)' : 'rgba(16,185,129,0.15)' }]}>
+                            <Text style={[styles.badgeText, { color: isDark ? '#00BCD4' : '#16A34A' }]}>
+                                {isDark ? '🌙 Koyu' : '☀️ Aydınlık'} (Değiştir)
+                            </Text>
                         </View>
-                    </View>
+                    </TouchableOpacity>
 
                     <View style={styles.infoRow}>
                         <View style={[styles.iconBox, { backgroundColor: 'rgba(142,142,147,0.15)' }]}>
@@ -329,7 +400,7 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(255,255,255,0.05)',
     },
     sectionTitle: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 17,
         fontWeight: '600',
         flex: 1,
@@ -351,7 +422,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.primary + '30',
         alignItems: 'center', justifyContent: 'center', marginRight: 15,
     },
-    profileName: { color: '#fff', fontSize: 17, fontWeight: '600' },
+    profileName: { color: Colors.text, fontSize: 17, fontWeight: '600' },
     profileEmail: { color: Colors.textSecondary, fontSize: 13, marginTop: 2 },
     editButton: {
         width: 32, height: 32, borderRadius: 10,
@@ -376,7 +447,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         paddingHorizontal: 14,
         paddingVertical: 12,
-        color: '#fff',
+        color: Colors.text,
         fontSize: 15,
         borderWidth: 1,
         borderColor: Colors.border,
@@ -406,7 +477,7 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         marginRight: 12,
     },
-    notifTitle: { color: '#fff', fontSize: 14, fontWeight: '500' },
+    notifTitle: { color: Colors.text, fontSize: 14, fontWeight: '500' },
     notifDesc: { color: Colors.textSecondary, fontSize: 11, lineHeight: 15, marginTop: 2 },
     testNotifBtn: {
         flexDirection: 'row',
@@ -435,7 +506,7 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         marginRight: 12,
     },
-    infoTitle: { color: '#fff', fontSize: 15, flex: 1 },
+    infoTitle: { color: Colors.text, fontSize: 15, flex: 1 },
     badge: {
         backgroundColor: 'rgba(0,188,212,0.15)',
         paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
@@ -464,4 +535,49 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     signOutText: { color: Colors.error, fontSize: 16, fontWeight: '600' },
+
+    // Theme Styles
+    themeGrid: {
+        gap: 12,
+        marginTop: 5,
+    },
+    themeCard: {
+        borderRadius: 14,
+        padding: 14,
+        borderWidth: 1.5,
+    },
+    themeCardTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    themePaletteRow: {
+        flexDirection: 'row',
+        gap: 6,
+    },
+    themeColorDot: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.15)',
+    },
+    modeBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 12,
+    },
+    modeBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+    },
+    themeCardName: {
+        fontSize: 15,
+        fontWeight: '600',
+    },
+    themeCardSubtitle: {
+        fontSize: 12,
+        marginTop: 4,
+        lineHeight: 16,
+    },
 });

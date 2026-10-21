@@ -5,9 +5,58 @@
 
 export const THEMES = [
     {
+        id: 'light-pure',
+        name: 'Aydınlık (Ferah Beyaz & Zümrüt)',
+        subtitle: 'Göz yormayan ferah beyaz, temiz arayüz ve zümrüt yeşili vurgusu',
+        isLight: true,
+        preview: ['#ffffff', '#f1f5f9', '#10b981', '#0f172a'],
+        vars: {
+            '--bg-primary': '#F8FAFC',
+            '--bg-secondary': '#FFFFFF',
+            '--bg-card': '#FFFFFF',
+            '--bg-card-hover': '#F1F5F9',
+            '--surface-high': '#F8FAFC',
+            '--surface-highest': '#E2E8F0',
+            '--primary': '#10B981',
+            '--primary-glow': 'rgba(16, 185, 129, 0.25)',
+            '--secondary': '#0284C7',
+            '--text-main': '#0F172A',
+            '--text-muted': '#64748B',
+            '--text-dim': '#94A3B8',
+            '--border': '#E2E8F0',
+            '--border-strong': '#CBD5E1',
+            '--shadow-glow': '0 4px 20px rgba(0, 0, 0, 0.06)'
+        }
+    },
+    {
+        id: 'light-warm',
+        name: 'Aydınlık (Sıcak Fildişi)',
+        subtitle: 'Hafif sıcak kağıt tonları, amber altın dokunuşları ve yumuşak kontrast',
+        isLight: true,
+        preview: ['#faf7f2', '#f3efe8', '#f59e0b', '#262320'],
+        vars: {
+            '--bg-primary': '#FDFBF7',
+            '--bg-secondary': '#F5F1E9',
+            '--bg-card': '#FFFFFF',
+            '--bg-card-hover': '#FAF7F2',
+            '--surface-high': '#F5F1E9',
+            '--surface-highest': '#EBE4D8',
+            '--primary': '#D97706',
+            '--primary-glow': 'rgba(217, 119, 6, 0.25)',
+            '--secondary': '#10B981',
+            '--text-main': '#1C1917',
+            '--text-muted': '#78716C',
+            '--text-dim': '#A8A29E',
+            '--border': '#E7E0D3',
+            '--border-strong': '#D6CEBF',
+            '--shadow-glow': '0 4px 20px rgba(0, 0, 0, 0.05)'
+        }
+    },
+    {
         id: 'emerald',
         name: 'Monty Doğa (Zümrüt)',
         subtitle: 'Büyüme, bereket ve organik yeşil tonları (Yeni Logo ile uyumlu)',
+        isLight: false,
         preview: ['#10b981', '#f59e0b', '#0b1310', '#162520'],
         vars: {
             '--bg-primary': '#0b1310',
@@ -120,6 +169,7 @@ export function applyTheme(themeId) {
     const root = document.documentElement;
 
     root.setAttribute('data-theme', theme.id);
+    root.setAttribute('data-theme-mode', theme.isLight ? 'light' : 'dark');
 
     Object.entries(theme.vars).forEach(([key, value]) => {
         root.style.setProperty(key, value);

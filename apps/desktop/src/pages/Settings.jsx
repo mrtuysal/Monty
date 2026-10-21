@@ -299,20 +299,32 @@ export default function Settings() {
                                 >
                                     <div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                            <div style={{ display: 'flex', gap: '6px' }}>
-                                                {theme.preview.map((color, idx) => (
-                                                    <span
-                                                        key={idx}
-                                                        style={{
-                                                            width: '14px',
-                                                            height: '14px',
-                                                            borderRadius: '50%',
-                                                            backgroundColor: color,
-                                                            border: '1px solid rgba(255,255,255,0.2)',
-                                                            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                                                        }}
-                                                    />
-                                                ))}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div style={{ display: 'flex', gap: '5px' }}>
+                                                    {theme.preview.map((color, idx) => (
+                                                        <span
+                                                            key={idx}
+                                                            style={{
+                                                                width: '14px',
+                                                                height: '14px',
+                                                                borderRadius: '50%',
+                                                                backgroundColor: color,
+                                                                border: '1px solid rgba(0,0,0,0.1)',
+                                                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <span style={{
+                                                    fontSize: '10px',
+                                                    padding: '2px 7px',
+                                                    borderRadius: '9999px',
+                                                    background: theme.isLight ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.08)',
+                                                    color: theme.isLight ? '#10b981' : 'var(--text-muted)',
+                                                    fontWeight: '600'
+                                                }}>
+                                                    {theme.isLight ? '☀️ Aydınlık' : '🌙 Koyu'}
+                                                </span>
                                             </div>
                                             {isSelected && (
                                                 <FaCheckCircle color="var(--primary)" size={16} />

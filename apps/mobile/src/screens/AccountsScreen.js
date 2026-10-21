@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Colors, Typography, Layout } from '../constants/Theme';
 import { useData } from '../context/DataContext';
+import { useTheme } from '../context/ThemeContext';
 
 const ACCOUNT_TYPES = [
     { key: 'BANK', label: 'Banka', icon: 'business-outline' },
@@ -29,6 +30,7 @@ const initialForm = {
 };
 
 export default function AccountsScreen() {
+    const { colors, isDark } = useTheme();
     const { accounts, addAccount, updateAccount, deleteAccount, saveAccountOrder, formatMoney, convertToTRY } = useData();
     const [modalVisible, setModalVisible] = useState(false);
     const [editingAccount, setEditingAccount] = useState(null);
@@ -164,10 +166,10 @@ export default function AccountsScreen() {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={Typography.h1}>Hesaplar</Text>
+                <Text style={[Typography.h1, { color: colors.text }]}>Hesaplar</Text>
                 <TouchableOpacity onPress={handleOpenAdd}>
                     <LinearGradient
                         colors={[Colors.primary, '#5a52d5']}
@@ -419,7 +421,7 @@ export default function AccountsScreen() {
                                         onPress={() => setForm({ ...form, type: t.key })}
                                     >
                                         <Ionicons name={t.icon} size={16} color={form.type === t.key ? '#fff' : Colors.textSecondary} />
-                                        <Text style={[styles.typeChipText, form.type === t.key && { color: '#fff' }]}>
+                                        <Text style={[styles.typeChipText, form.type === t.key && { color: Colors.text }]}>
                                             {t.label}
                                         </Text>
                                     </TouchableOpacity>
@@ -434,7 +436,7 @@ export default function AccountsScreen() {
                                         style={[styles.typeChip, form.currency === c && styles.typeChipActive]}
                                         onPress={() => setForm({ ...form, currency: c })}
                                     >
-                                        <Text style={[styles.typeChipText, form.currency === c && { color: '#fff' }]}>
+                                        <Text style={[styles.typeChipText, form.currency === c && { color: Colors.text }]}>
                                             {currencySymbol(c)} {c}
                                         </Text>
                                     </TouchableOpacity>
@@ -482,7 +484,7 @@ const styles = StyleSheet.create({
         borderWidth: 1, borderColor: 'rgba(108,99,255,0.2)',
     },
     totalLabel: { color: Colors.textSecondary, fontSize: 13 },
-    totalAmount: { color: '#fff', fontSize: 28, fontWeight: 'bold', marginVertical: 5 },
+    totalAmount: { color: Colors.text, fontSize: 28, fontWeight: 'bold', marginVertical: 5 },
     totalAccounts: { color: Colors.textSecondary, fontSize: 12 },
     // Kompakt Banka ve Hesap Listesi Stilleri
     bankGroupCard: {
@@ -504,12 +506,12 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(255,255,255,0.05)',
     },
     bankTitleText: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 15,
         fontWeight: '700',
     },
     bankTotalText: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 15,
         fontWeight: 'bold',
     },
@@ -555,7 +557,7 @@ const styles = StyleSheet.create({
         marginRight: 10,
     },
     accountNameText: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 13.5,
         fontWeight: '600',
     },
@@ -570,7 +572,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     accountBalanceText: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 13.5,
         fontWeight: 'bold',
         textAlign: 'right',
@@ -603,7 +605,7 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(255,255,255,0.08)',
     },
     actionModalTitle: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },
@@ -638,7 +640,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row', justifyContent: 'space-between',
         alignItems: 'center', marginBottom: 20,
     },
-    modalTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
+    modalTitle: { color: Colors.text, fontSize: 22, fontWeight: 'bold' },
     label: {
         color: Colors.textSecondary, fontSize: 13, fontWeight: '600',
         marginBottom: 6, marginTop: 12,
@@ -654,7 +656,7 @@ const styles = StyleSheet.create({
     typeChipText: { color: Colors.textSecondary, fontSize: 13 },
     modalInput: {
         backgroundColor: Colors.surface, borderRadius: 12,
-        padding: 14, color: '#fff', fontSize: 15,
+        padding: 14, color: Colors.text, fontSize: 15,
         borderWidth: 1, borderColor: Colors.border,
         textAlign: 'right', // Rakamlar ve yazılar sağa dayalı
     },

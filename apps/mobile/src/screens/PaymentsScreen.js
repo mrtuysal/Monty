@@ -9,6 +9,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Colors, Typography, Layout } from '../constants/Theme';
 import { useData } from '../context/DataContext';
+import { useTheme } from '../context/ThemeContext';
 import {
     getNextRecurringPayment,
     parseRecurringConfig,
@@ -63,6 +64,7 @@ const initialForm = {
 };
 
 export default function PaymentsScreen() {
+    const { colors, isDark } = useTheme();
     const { payments, addPayment, updatePayment, deletePayment, formatMoney, formatDate } = useData();
     const [modalVisible, setModalVisible] = useState(false);
     const [form, setForm] = useState(initialForm);
@@ -331,10 +333,10 @@ export default function PaymentsScreen() {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={Typography.h1}>Ödemeler</Text>
+                <Text style={[Typography.h1, { color: colors.text }]}>Ödemeler</Text>
                 <TouchableOpacity onPress={() => { setEditingId(null); setForm(initialForm); setModalVisible(true); }}>
                     <LinearGradient
                         colors={[Colors.primary, '#5a52d5']}
@@ -458,7 +460,7 @@ export default function PaymentsScreen() {
             }}>
                 <View>
                     <Text style={{ color: Colors.textSecondary, fontSize: 11, textTransform: 'uppercase' }}>Toplam ({totals.count})</Text>
-                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: 'bold', marginTop: 2 }}>₺{totals.total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                    <Text style={{ color: Colors.text, fontSize: 15, fontWeight: 'bold', marginTop: 2 }}>₺{totals.total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
                 </View>
                 <View style={{ alignItems: 'center' }}>
                     <Text style={{ color: Colors.textSecondary, fontSize: 11, textTransform: 'uppercase' }}>Ödenen</Text>
@@ -512,7 +514,7 @@ export default function PaymentsScreen() {
                                         <Text style={{ fontSize: 18 }}>{t.emoji}</Text>
                                         <Text style={[
                                             styles.typeChipText,
-                                            form.type === t.key && { color: '#fff' }
+                                            form.type === t.key && { color: Colors.text }
                                         ]}>{t.label}</Text>
                                     </TouchableOpacity>
                                 ))}
@@ -598,7 +600,7 @@ export default function PaymentsScreen() {
                                             >
                                                 <Text style={[
                                                     styles.typeChipText,
-                                                    form.recurringFrequency === f.key && { color: '#fff' }
+                                                    form.recurringFrequency === f.key && { color: Colors.text }
                                                 ]}>{f.label}</Text>
                                             </TouchableOpacity>
                                         ))}
@@ -610,7 +612,7 @@ export default function PaymentsScreen() {
                                             style={[styles.typeChip, { flex: 1 }, form.recurringType === 'INFINITE' && styles.typeChipActive]}
                                             onPress={() => setForm({ ...form, recurringType: 'INFINITE' })}
                                         >
-                                            <Text style={[styles.typeChipText, form.recurringType === 'INFINITE' && { color: '#fff', fontWeight: 'bold' }]}>
+                                            <Text style={[styles.typeChipText, form.recurringType === 'INFINITE' && { color: Colors.text, fontWeight: 'bold' }]}>
                                                 ♾️ Sonsuz (Süresiz)
                                             </Text>
                                         </TouchableOpacity>
@@ -619,7 +621,7 @@ export default function PaymentsScreen() {
                                             style={[styles.typeChip, { flex: 1 }, form.recurringType === 'COUNT' && styles.typeChipActive]}
                                             onPress={() => setForm({ ...form, recurringType: 'COUNT' })}
                                         >
-                                            <Text style={[styles.typeChipText, form.recurringType === 'COUNT' && { color: '#fff', fontWeight: 'bold' }]}>
+                                            <Text style={[styles.typeChipText, form.recurringType === 'COUNT' && { color: Colors.text, fontWeight: 'bold' }]}>
                                                 🔢 Belirli Sayıda
                                             </Text>
                                         </TouchableOpacity>
@@ -643,7 +645,7 @@ export default function PaymentsScreen() {
                                                     >
                                                         <Text style={[
                                                             styles.typeChipText,
-                                                            form.recurringTotalCount === cnt && { color: '#fff', fontWeight: 'bold' }
+                                                            form.recurringTotalCount === cnt && { color: Colors.text, fontWeight: 'bold' }
                                                         ]}>{cnt}</Text>
                                                     </TouchableOpacity>
                                                 ))}
@@ -902,7 +904,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.08)',
     },
     monthTitle: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 13,
         fontWeight: '700',
     },
@@ -938,7 +940,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     allYearPillTextActive: {
-        color: '#fff',
+        color: Colors.text,
         fontWeight: '700',
     },
 
@@ -973,7 +975,7 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
     },
     filterTabTextActive: {
-        color: '#fff',
+        color: Colors.text,
         fontWeight: '700',
     },
 
@@ -1006,7 +1008,7 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     yearTitle: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 16,
         fontWeight: '700',
     },
@@ -1034,12 +1036,12 @@ const styles = StyleSheet.create({
         borderColor: Colors.primary + '80',
     },
     monthGridBtnText: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 12,
         fontWeight: '600',
     },
     monthGridBtnTextActive: {
-        color: '#fff',
+        color: Colors.text,
         fontWeight: '800',
     },
     monthBadgeCount: {
@@ -1073,7 +1075,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     modalAllYearBtnTextActive: {
-        color: '#fff',
+        color: Colors.text,
         fontWeight: '700',
     },
 
@@ -1107,7 +1109,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     institutionText: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 14.5,
         fontWeight: '700',
         maxWidth: 150,
@@ -1121,7 +1123,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     debtAmountText: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 15,
         fontWeight: 'bold',
         textAlign: 'right',
@@ -1170,7 +1172,7 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     verticalStatusText: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 8,
         fontWeight: '800',
         letterSpacing: 0.5,
@@ -1199,7 +1201,7 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(255,255,255,0.08)',
     },
     actionModalTitle: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },
@@ -1237,7 +1239,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row', justifyContent: 'space-between',
         alignItems: 'center', marginBottom: 20,
     },
-    modalTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
+    modalTitle: { color: Colors.text, fontSize: 22, fontWeight: 'bold' },
     label: {
         color: Colors.textSecondary, fontSize: 13, fontWeight: '600',
         marginBottom: 6, marginTop: 12,
@@ -1253,7 +1255,7 @@ const styles = StyleSheet.create({
     typeChipText: { color: Colors.textSecondary, fontSize: 13 },
     modalInput: {
         backgroundColor: Colors.surface, borderRadius: 12,
-        padding: 14, color: '#fff', fontSize: 15,
+        padding: 14, color: Colors.text, fontSize: 15,
         borderWidth: 1, borderColor: Colors.border,
         textAlign: 'right', // Rakamlar ve yazılar sağa dayalı
     },

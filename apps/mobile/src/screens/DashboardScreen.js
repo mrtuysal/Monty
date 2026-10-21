@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'rea
 import { Colors, Typography, Layout } from '../constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useData } from '../context/DataContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function DashboardScreen({ navigation }) {
+    const { colors, isDark } = useTheme();
     const {
         accounts,
         payments,
@@ -104,7 +106,7 @@ export default function DashboardScreen({ navigation }) {
     const userInitials = userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'MY';
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             {/* TopAppBar Stitch Anchor */}
             <View style={styles.topAppBar}>
                 <View style={styles.brandRow}>
@@ -424,7 +426,7 @@ const styles = StyleSheet.create({
     brandName: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#FAFAFA',
+        color: Colors.text,
         letterSpacing: -0.3,
     },
     proBadge: {
@@ -509,7 +511,7 @@ const styles = StyleSheet.create({
     tickerValue: {
         fontSize: 11,
         fontWeight: '700',
-        color: '#FAFAFA',
+        color: Colors.text,
     },
     heroCard: {
         backgroundColor: '#141417',
@@ -565,7 +567,7 @@ const styles = StyleSheet.create({
     heroAmount: {
         fontSize: 32,
         fontWeight: '800',
-        color: '#FFFFFF',
+        color: Colors.text,
         letterSpacing: -0.6,
         marginVertical: 4,
     },
@@ -631,7 +633,7 @@ const styles = StyleSheet.create({
     stackCardAmount: {
         fontSize: 18,
         fontWeight: '800',
-        color: '#FFFFFF',
+        color: Colors.text,
         marginVertical: 6,
     },
     warningPill: {
@@ -738,7 +740,7 @@ const styles = StyleSheet.create({
     listSectionTitle: {
         fontSize: 15,
         fontWeight: '700',
-        color: '#FFFFFF',
+        color: Colors.text,
     },
     seeAllButton: {
         flexDirection: 'row',
@@ -793,7 +795,7 @@ const styles = StyleSheet.create({
     densityTitle: {
         fontSize: 13,
         fontWeight: '600',
-        color: '#FAFAFA',
+        color: Colors.text,
         lineHeight: 16,
     },
     densitySubtitle: {
@@ -807,7 +809,7 @@ const styles = StyleSheet.create({
     densityAmount: {
         fontSize: 13,
         fontWeight: '700',
-        color: '#FAFAFA',
+        color: Colors.text,
     },
     densityDate: {
         fontSize: 10,
@@ -841,7 +843,7 @@ const styles = StyleSheet.create({
     liquidityTitle: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#FAFAFA',
+        color: Colors.text,
     },
     liquiditySubtitle: {
         fontSize: 10,

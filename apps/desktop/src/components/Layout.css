@@ -14,7 +14,7 @@
     justify-content: space-between;
     padding: 24px 18px;
     box-sizing: border-box;
-    background: #0E0E10;
+    background: var(--bg-secondary);
     border-right: 1px solid var(--border);
     transition: width 0.3s ease;
     z-index: 100;
@@ -44,15 +44,15 @@
     width: 38px;
     height: 38px;
     border-radius: 12px;
-    background: #1C1C21;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-high);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     overflow: hidden;
     padding: 3px;
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .logo-img {
@@ -135,20 +135,20 @@
 }
 
 .sidebar-item:hover {
-    background: #1C1C21;
+    background: var(--bg-card-hover);
     color: var(--text-main);
 }
 
 .sidebar-item.active {
-    background: #201F22;
-    color: var(--secondary);
+    background: var(--surface-highest);
+    color: var(--primary);
     font-weight: 600;
-    border: 1px solid rgba(232, 245, 74, 0.35);
-    box-shadow: 0 0 12px rgba(232, 245, 74, 0.08);
+    border: 1px solid var(--primary);
+    box-shadow: 0 0 12px var(--primary-glow);
 }
 
 .sidebar-item.active .sidebar-item-icon {
-    color: var(--secondary);
+    color: var(--primary);
 }
 
 .sidebar-item-icon {
@@ -187,7 +187,7 @@
 .sync-widget {
     padding: 12px;
     border-radius: 12px;
-    background: #141417;
+    background: var(--bg-card);
     border: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -271,14 +271,14 @@
     justify-content: space-between;
     padding: 8px 10px;
     border-radius: 12px;
-    background: rgba(28, 28, 33, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     cursor: pointer;
     transition: background 0.15s;
 }
 
 .user-profile-card:hover {
-    background: #1C1C21;
+    background: var(--bg-card-hover);
 }
 
 .profile-left {
@@ -291,14 +291,14 @@
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: #2A2A2C;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-highest);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 11px;
     font-weight: 700;
-    color: var(--secondary);
+    color: var(--primary);
 }
 
 .profile-info {

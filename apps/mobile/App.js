@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { ThemeProvider } from './src/context/ThemeContext';
 import { DataProvider } from './src/context/DataContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { checkForUpdates } from './src/services/UpdateService';
@@ -13,8 +14,10 @@ export default function App() {
   }, []);
 
   return (
-    <DataProvider>
-      <AppNavigator />
-    </DataProvider>
+    <ThemeProvider>
+      <DataProvider>
+        <AppNavigator />
+      </DataProvider>
+    </ThemeProvider>
   );
 }

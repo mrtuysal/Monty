@@ -6,6 +6,7 @@ import { View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Theme';
 import { useData } from '../context/DataContext';
+import { useTheme } from '../context/ThemeContext';
 
 // Screens
 import DashboardScreen from '../screens/DashboardScreen';
@@ -18,25 +19,27 @@ import LoginScreen from '../screens/LoginScreen';
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
+    const { colors, isDark } = useTheme();
+
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: Colors.surfaceLowest || '#0E0E10',
-                    borderTopColor: Colors.border || 'rgba(255, 255, 255, 0.08)',
+                    backgroundColor: colors.surface,
+                    borderTopColor: colors.border,
                     borderTopWidth: 1,
                     height: 64,
                     paddingBottom: 8,
                     paddingTop: 6,
                     elevation: 12,
-                    shadowColor: '#000',
+                    shadowColor: isDark ? '#000' : 'rgba(0,0,0,0.08)',
                     shadowOffset: { width: 0, height: -4 },
-                    shadowOpacity: 0.4,
+                    shadowOpacity: isDark ? 0.4 : 0.06,
                     shadowRadius: 16,
                 },
-                tabBarActiveTintColor: Colors.secondary || '#E8F54A',
-                tabBarInactiveTintColor: Colors.textSecondary || '#A1A1AA',
+                tabBarActiveTintColor: colors.primary,
+                tabBarInactiveTintColor: colors.textSecondary,
                 tabBarIcon: ({ focused, color }) => {
                     let iconName;
                     if (route.name === 'Ana Sayfa') iconName = focused ? 'grid' : 'grid-outline';
@@ -53,7 +56,7 @@ function MainTabs() {
                                         width: 4,
                                         height: 4,
                                         borderRadius: 2,
-                                        backgroundColor: Colors.secondary || '#E8F54A',
+                                        backgroundColor: colors.primary,
                                         marginTop: 2,
                                     }}
                                 />
@@ -79,18 +82,19 @@ function MainTabs() {
 
 export default function AppNavigator() {
     const { session, authLoading } = useData();
+    const { colors, isDark } = useTheme();
 
     if (authLoading) {
         return (
-            <View style={{ flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center' }}>
-                <ActivityIndicator size="large" color={Colors.primary} />
+            <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
 
     return (
         <NavigationContainer>
-            <StatusBar style="light" />
+            <StatusBar style={isDark ? "light" : "dark"} backgroundColor={colors.background} />
             {session ? <MainTabs /> : <LoginScreen />}
         </NavigationContainer>
     );
