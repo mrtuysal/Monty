@@ -1,6 +1,7 @@
-const { app, BrowserWindow, ipcMain, session, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, session, Notification, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
+const http = require('http');
 
 const isDev = !app.isPackaged;
 
@@ -170,20 +171,216 @@ ipcMain.handle('clear-session-data', async () => {
     }
 });
 
-// OAuth Window Handler (Solves Google block & white screen issues)
+// ═══════════════════════════════════════════
+//  OAuth Loopback Server (Secure Browser Login)
+// ═══════════════════════════════════════════
+let activeOAuthServer = null;
+let activeOAuthTimeout = null;
+
+function cleanupOAuthServer() {
+    if (activeOAuthTimeout) {
+        clearTimeout(activeOAuthTimeout);
+        activeOAuthTimeout = null;
+    }
+    if (activeOAuthServer) {
+        try {
+            activeOAuthServer.close();
+        } catch (e) { }
+        activeOAuthServer = null;
+    }
+}
+
+ipcMain.handle('prepare-oauth', async () => {
+    cleanupOAuthServer();
+
+    return new Promise((resolve, reject) => {
+        const createServer = (port) => {
+            const server = http.createServer((req, res) => {
+                const parsedUrl = new URL(req.url, `http://localhost:${server.address().port}`);
+
+                if (parsedUrl.pathname === '/auth/callback') {
+                    // Serve callback landing page that extracts hash and POSTs back to /callback-complete
+                    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                    res.end(`<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>Monty - Giriş Başarılı</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #09090b;
+      color: #fafafa;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      max-width: 420px;
+      width: 100%;
+    }
+    .icon {
+      font-size: 52px;
+      margin-bottom: 20px;
+      display: inline-block;
+      animation: pop 0.4s ease-out;
+    }
+    h2 { margin: 0 0 10px 0; color: #22c55e; font-size: 22px; font-weight: 700; }
+    p { margin: 0; color: #a1a1aa; font-size: 14px; line-height: 1.6; }
+    .badge {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(34, 197, 94, 0.1);
+      color: #4ade80;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    @keyframes pop {
+      0% { transform: scale(0.6); opacity: 0; }
+      80% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🌿</div>
+    <h2>Giriş Başarılı!</h2>
+    <p>Hesabınız doğrulandı. Monty masaüstü uygulamasına otomatik olarak aktarılıyorsunuz.</p>
+    <div class="badge">Bu sekmeyi güvenle kapatabilirsiniz</div>
+  </div>
+  <script>
+    const hash = window.location.hash.substring(1);
+    const search = window.location.search.substring(1);
+    const params = new URLSearchParams(hash || search);
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    const code = params.get('code');
+    const error = params.get('error_description') || params.get('error');
+
+    fetch('/callback-complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken, refreshToken, code, error })
+    }).finally(() => {
+      setTimeout(() => {
+        try { window.close(); } catch(e){}
+      }, 1500);
+    });
+  </script>
+</body>
+</html>`);
+                } else if (parsedUrl.pathname === '/callback-complete' && req.method === 'POST') {
+                    let body = '';
+                    req.on('data', chunk => body += chunk);
+                    req.on('end', () => {
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ ok: true }));
+
+                        try {
+                            const data = JSON.parse(body || '{}');
+                            if (activeOAuthServer && activeOAuthServer.onAuthComplete) {
+                                activeOAuthServer.onAuthComplete(data);
+                            }
+                        } catch (e) {
+                            if (activeOAuthServer && activeOAuthServer.onAuthComplete) {
+                                activeOAuthServer.onAuthComplete({ error: 'Payload parse failed' });
+                            }
+                        }
+                    });
+                } else {
+                    res.writeHead(404);
+                    res.end('Not Found');
+                }
+            });
+
+            server.on('error', (err) => {
+                if (err.code === 'EADDRINUSE' && port !== 0) {
+                    console.log(`Port ${port} in use, trying random port...`);
+                    createServer(0);
+                } else {
+                    reject(err);
+                }
+            });
+
+            server.listen(port, '127.0.0.1', () => {
+                const assignedPort = server.address().port;
+                console.log(`OAuth loopback server listening on 127.0.0.1:${assignedPort}`);
+                activeOAuthServer = server;
+                resolve({ port: assignedPort });
+            });
+        };
+
+        createServer(54321);
+    });
+});
+
+ipcMain.handle('wait-for-oauth', async (event, url) => {
+    if (!activeOAuthServer) {
+        throw new Error('OAuth loopback server is not active');
+    }
+
+    return new Promise((resolve) => {
+        let isResolved = false;
+
+        const complete = (data) => {
+            if (isResolved) return;
+            isResolved = true;
+            cleanupOAuthServer();
+
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                if (mainWindow.isMinimized()) mainWindow.restore();
+                mainWindow.show();
+                mainWindow.focus();
+            }
+
+            resolve(data);
+        };
+
+        activeOAuthServer.onAuthComplete = complete;
+
+        activeOAuthTimeout = setTimeout(() => {
+            complete({ error: 'Giriş işlemi zaman aşımına uğradı.' });
+        }, 3 * 60 * 1000);
+
+        console.log('Opening OAuth URL in user default browser:', url);
+        shell.openExternal(url).catch(err => {
+            console.error('Failed to open external browser:', err);
+            complete({ error: 'Tarayıcı açılamadı: ' + err.message });
+        });
+    });
+});
+
+ipcMain.handle('cancel-oauth', () => {
+    cleanupOAuthServer();
+    return { success: true };
+});
+
+// Legacy OAuth Window Handler fallback
 ipcMain.handle('open-auth-window', async (event, url) => {
     return new Promise((resolve) => {
         let authWindow = new BrowserWindow({
             width: 500,
             height: 700,
-            show: false, // Don't show immediately to prevent white flash
+            show: false,
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true
             }
         });
 
-        // Spoof standard browser User-Agent to bypass Google/Apple's embedded browser blocks
         const customUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
         authWindow.webContents.setUserAgent(customUA);
 
@@ -194,7 +391,6 @@ ipcMain.handle('open-auth-window', async (event, url) => {
         });
 
         const checkRedirect = (newUrl) => {
-            // Check if the URL contains Supabase auth tokens
             if (newUrl.includes('access_token=') || newUrl.includes('provider_token=')) {
                 resolve(newUrl);
                 authWindow.close();
@@ -204,7 +400,6 @@ ipcMain.handle('open-auth-window', async (event, url) => {
         authWindow.webContents.on('will-redirect', (e, newUrl) => checkRedirect(newUrl));
         authWindow.webContents.on('did-redirect-navigation', (e, newUrl) => checkRedirect(newUrl));
 
-        // Periodically check the current URL (in case redirects aren't caught)
         const checkInterval = setInterval(() => {
             if (!authWindow || authWindow.isDestroyed()) {
                 clearInterval(checkInterval);
@@ -218,7 +413,7 @@ ipcMain.handle('open-auth-window', async (event, url) => {
 
         authWindow.on('closed', () => {
             clearInterval(checkInterval);
-            resolve(null); // User manually closed the window
+            resolve(null);
         });
     });
 });

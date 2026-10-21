@@ -11,7 +11,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Clear all session/storage data (used during logout)
     clearSessionData: () => ipcRenderer.invoke('clear-session-data'),
 
-    // OAuth
+    // OAuth (Secure Loopback Server)
+    prepareOAuth: () => ipcRenderer.invoke('prepare-oauth'),
+    waitForOAuth: (url) => ipcRenderer.invoke('wait-for-oauth', url),
+    cancelOAuth: () => ipcRenderer.invoke('cancel-oauth'),
     openAuthWindow: (url) => ipcRenderer.invoke('open-auth-window', url),
 
     // Get the application version

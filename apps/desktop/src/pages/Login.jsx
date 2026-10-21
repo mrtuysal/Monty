@@ -68,49 +68,85 @@ export default function Login() {
         setLoading(true);
         setError(null);
         try {
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: provider.toLowerCase(),
-                options: {
-                    redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`,
-                    skipBrowserRedirect: true
-                }
-            });
-            if (error) throw error;
+            // Priority 1: Electron Desktop Secure Browser Flow (Loopback Server)
+            if (window.electronAPI && window.electronAPI.prepareOAuth && window.electronAPI.waitForOAuth) {
+                const { port } = await window.electronAPI.prepareOAuth();
+                const redirectUrl = `http://localhost:${port}/auth/callback`;
 
-            if (data?.url) {
-                // If running in packaged desktop app, use Electron's secure window
-                if (window.electronAPI && window.electronAPI.openAuthWindow) {
-                    const callbackUrl = await window.electronAPI.openAuthWindow(data.url);
-                    if (callbackUrl) {
-                        try {
-                            const urlObj = new URL(callbackUrl);
-                            const hashParams = new URLSearchParams(urlObj.hash.substring(1));
-                            const accessToken = hashParams.get('access_token');
-                            const refreshToken = hashParams.get('refresh_token');
-
-                            if (accessToken && refreshToken) {
-                                await supabase.auth.setSession({
-                                    access_token: accessToken,
-                                    refresh_token: refreshToken
-                                });
-                                navigate('/');
-                            } else {
-                                setError('Giriş bilgileri okunamadı.');
-                            }
-                        } catch (e) {
-                            setError('Geçersiz doğrulama bağlantısı.');
-                        }
-                    } else {
-                        setError('Giriş penceresi kapatıldı.');
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: provider.toLowerCase(),
+                    options: {
+                        redirectTo: redirectUrl,
+                        skipBrowserRedirect: true
                     }
-                    setLoading(false);
-                } else {
-                    // Fallback for web mode
-                    window.location.href = data.url;
+                });
+                if (error) throw error;
+                if (!data?.url) throw new Error('Giriş bağlantısı oluşturulamadı.');
+
+                const result = await window.electronAPI.waitForOAuth(data.url);
+                if (result.error) {
+                    throw new Error(result.error);
                 }
+
+                if (result.accessToken && result.refreshToken) {
+                    const { error: sessionError } = await supabase.auth.setSession({
+                        access_token: result.accessToken,
+                        refresh_token: result.refreshToken
+                    });
+                    if (sessionError) throw sessionError;
+                    navigate('/');
+                } else if (result.code) {
+                    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(result.code);
+                    if (exchangeError) throw exchangeError;
+                    navigate('/');
+                } else {
+                    throw new Error('Giriş bilgileri okunamadı.');
+                }
+            } else if (window.electronAPI && window.electronAPI.openAuthWindow) {
+                // Priority 2: Electron Legacy Window
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: provider.toLowerCase(),
+                    options: {
+                        redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`,
+                        skipBrowserRedirect: true
+                    }
+                });
+                if (error) throw error;
+                if (!data?.url) throw new Error('Giriş bağlantısı oluşturulamadı.');
+
+                const callbackUrl = await window.electronAPI.openAuthWindow(data.url);
+                if (callbackUrl) {
+                    const urlObj = new URL(callbackUrl);
+                    const hashParams = new URLSearchParams(urlObj.hash.substring(1));
+                    const accessToken = hashParams.get('access_token');
+                    const refreshToken = hashParams.get('refresh_token');
+
+                    if (accessToken && refreshToken) {
+                        await supabase.auth.setSession({
+                            access_token: accessToken,
+                            refresh_token: refreshToken
+                        });
+                        navigate('/');
+                    } else {
+                        throw new Error('Giriş bilgileri okunamadı.');
+                    }
+                } else {
+                    throw new Error('Giriş penceresi kapatıldı.');
+                }
+            } else {
+                // Priority 3: Web mode
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: provider.toLowerCase(),
+                    options: {
+                        redirectTo: window.location.origin
+                    }
+                });
+                if (error) throw error;
+                if (data?.url) window.location.href = data.url;
             }
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Giriş yapılamadı.');
+        } finally {
             setLoading(false);
         }
     };

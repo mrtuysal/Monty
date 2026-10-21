@@ -44,3 +44,5 @@ extracted.txt
 # Third-party credentials & services documentation
 Thirdparty.txt
 
+# Scratch scripts
+scratch/
