@@ -4,7 +4,8 @@ import { useData } from '../context/DataContext';
 import {
     FaWallet, FaMoneyBillWave, FaArrowRight, FaCreditCard,
     FaFileInvoiceDollar, FaEllipsisH, FaChevronLeft, FaChevronRight,
-    FaHandshake, FaCalendarWeek, FaCheckCircle, FaRegCircle, FaSyncAlt
+    FaHandshake, FaCalendarWeek, FaCheckCircle, FaRegCircle, FaSyncAlt,
+    FaSearch, FaPlus, FaArrowUp, FaArrowDown, FaShieldAlt
 } from 'react-icons/fa';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { useNavigate } from 'react-router-dom';
@@ -245,133 +246,448 @@ export default function Dashboard() {
                     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                 </div>
             )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-                {/* Row 1: Total Assets */}
-                <div
-                    className="glass-panel"
-                    style={{
-                        padding: '25px',
-                        borderRadius: 'var(--radius-lg)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        cursor: 'pointer',
-                        transition: 'transform 0.2s',
-                        background: 'linear-gradient(90deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.02) 100%)',
-                        borderLeft: '4px solid #4caf50'
-                    }}
-                    onClick={() => navigate('/accounts')}
-                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
-                        <div style={{
-                            width: '50px',
-                            height: '50px',
+            {/* STITCH DESKTOP TOPBAR */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                marginBottom: '24px',
+                paddingBottom: '16px',
+                borderBottom: '1px solid var(--border)',
+                flexWrap: 'wrap'
+            }}>
+                {/* Search Bar */}
+                <div style={{
+                    position: 'relative',
+                    width: '360px',
+                    maxWidth: '100%'
+                }}>
+                    <FaSearch style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: 'var(--text-muted)',
+                        fontSize: '14px'
+                    }} />
+                    <input
+                        type="text"
+                        placeholder="Fatura, kurum veya transfer ara... (Ctrl + K)"
+                        style={{
+                            width: '100%',
+                            height: '40px',
+                            paddingLeft: '38px',
+                            paddingRight: '60px',
+                            background: '#141417',
                             borderRadius: '12px',
-                            background: 'rgba(76, 175, 80, 0.2)',
-                            color: '#4caf50',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '24px'
-                        }}>
-                            <FaWallet />
-                        </div>
-                        <div>
-                            <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#eee' }}>Varlıklar Toplamı</h2>
-                            <p style={{ margin: '5px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                {accounts.length} Hesap
-                            </p>
-                        </div>
-                    </div>
-
-                    <div style={{ textAlign: 'right', minWidth: '200px' }}>
-                        {Object.entries(totalAssets).map(([curr, amount]) => (
-                            <div key={curr} style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#fff', lineHeight: 1.2 }}>
-                                {formatCurrency(amount, curr)}
-                            </div>
-                        ))}
-                        {Object.keys(totalAssets).some(c => c !== 'TRY') && (
-                            <div style={{ fontSize: '0.85rem', color: '#4caf50', marginTop: '4px', fontWeight: '500' }}>
-                                ≈ ₺ {consolidatedTRYAssets.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (TCMB)
-                            </div>
-                        )}
-                    </div>
-
-                    <div style={{ color: 'var(--text-muted)', marginLeft: '15px' }}>
-                        <FaArrowRight size={20} />
-                    </div>
+                            border: '1px solid var(--border)',
+                            color: 'var(--text-main)',
+                            fontSize: '12px',
+                            outline: 'none'
+                        }}
+                    />
+                    <span style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        padding: '2px 6px',
+                        fontSize: '10px',
+                        fontWeight: '700',
+                        color: 'var(--text-muted)',
+                        background: '#1C1C21',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border)'
+                    }}>⌘K</span>
                 </div>
 
-                {/* Row 2: Receivables / Debts Summary */}
-                <div
-                    className="glass-panel"
-                    style={{
-                        padding: '25px',
-                        borderRadius: 'var(--radius-lg)',
+                {/* Right Action Cluster */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {/* Date Filter Pill */}
+                    <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        cursor: 'pointer',
-                        transition: 'transform 0.2s',
-                        background: 'linear-gradient(90deg, rgba(108, 99, 255, 0.1) 0%, rgba(108, 99, 255, 0.02) 100%)',
-                        borderLeft: '4px solid #6c63ff'
-                    }}
-                    onClick={() => navigate('/receivables')}
-                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
-                        <div style={{
-                            width: '50px',
-                            height: '50px',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        borderRadius: '12px',
+                        background: '#141417',
+                        border: '1px solid var(--border)',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: 'var(--text-main)'
+                    }}>
+                        <select
+                            value={selectedDate.month}
+                            onChange={(e) => setSelectedDate(prev => ({ ...prev, month: parseInt(e.target.value) }))}
+                            className="inline-select"
+                            style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '12px', fontWeight: '600' }}
+                        >
+                            {MONTHS.map((m, i) => (
+                                <option key={i} value={i} style={{ background: '#141417' }}>{m}</option>
+                            ))}
+                        </select>
+                        <select
+                            value={selectedDate.year}
+                            onChange={(e) => setSelectedDate(prev => ({ ...prev, year: parseInt(e.target.value) }))}
+                            className="inline-select"
+                            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '12px', fontWeight: '600' }}
+                        >
+                            {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 3 + i).map(y => (
+                                <option key={y} value={y} style={{ background: '#141417' }}>{y}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Quick Add Bill CTA (Volt Lime) */}
+                    <button
+                        className="btn-primary"
+                        onClick={() => navigate('/payments')}
+                        style={{
+                            padding: '9px 16px',
                             borderRadius: '12px',
-                            background: 'rgba(108, 99, 255, 0.2)',
-                            color: '#6c63ff',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            gap: '6px'
+                        }}
+                    >
+                        <FaPlus size={12} />
+                        <span>+ Yeni Fatura Ekle</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* PAGE GREETING & HEALTH SCORE */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '20px',
+                flexWrap: 'wrap',
+                gap: '12px'
+            }}>
+                <div>
+                    <h1 style={{
+                        margin: 0,
+                        fontSize: '1.6rem',
+                        fontWeight: '800',
+                        color: '#FAFAFA',
+                        letterSpacing: '-0.02em'
+                    }}>
+                        Finansal Kontrol Paneli
+                    </h1>
+                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                        Hoş geldiniz. Bu ayki faturalarınızın %{paymentStats.total > 0 ? Math.round((paymentStats.paid / paymentStats.total) * 100) : 0}'i ödendi, {paymentStats.list.filter(p => p.status !== 'PAID').length} bekleyen ödeme mevcut.
+                    </p>
+                </div>
+
+                <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    background: 'rgba(34, 197, 94, 0.1)',
+                    border: '1px solid rgba(34, 197, 94, 0.25)',
+                    color: 'var(--primary)',
+                    fontSize: '12px',
+                    fontWeight: '700'
+                }}>
+                    <span style={{
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        background: 'var(--primary)',
+                        boxShadow: '0 0 8px var(--primary)'
+                    }} />
+                    <span>Finansal Sağlık Skoru: 88/100 (Kusursuz)</span>
+                </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+                {/* ROW 1: 4 BENTO SUMMARY METRICS CARDS */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                    gap: '16px'
+                }}>
+                    {/* Card 1: TOPLAM NET VARLIK */}
+                    <div
+                        className="card card-clickable"
+                        onClick={() => navigate('/accounts')}
+                        style={{
+                            background: '#141417',
+                            border: '1px solid var(--border)',
+                            borderRadius: '16px',
+                            padding: '18px 20px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }}
+                    >
+                        <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '24px'
+                            justifyContent: 'space-between',
+                            marginBottom: '10px'
                         }}>
-                            <FaHandshake />
+                            <span style={{
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                color: 'var(--text-muted)',
+                                letterSpacing: '0.05em'
+                            }}>
+                                TOPLAM NET VARLIK
+                            </span>
+                            <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '2px 8px',
+                                borderRadius: '9999px',
+                                background: 'rgba(34, 197, 94, 0.12)',
+                                color: 'var(--primary)',
+                                fontSize: '11px',
+                                fontWeight: '700'
+                            }}>
+                                <FaArrowUp size={9} />
+                                +%4.8
+                            </span>
                         </div>
-                        <div>
-                            <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#eee' }}>Alacak / Borç</h2>
-                            <p style={{ margin: '5px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                {receivables.filter(r => r.status !== 'DONE').length} aktif kayıt
-                            </p>
+
+                        <div style={{ marginBottom: '12px' }}>
+                            <div style={{ fontSize: '1.65rem', fontWeight: '800', color: '#FFFFFF', letterSpacing: '-0.02em' }}>
+                                ₺ {consolidatedTRYAssets.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                        </div>
+
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingTop: '10px',
+                            borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                            fontSize: '11px'
+                        }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)' }}>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--secondary)' }} />
+                                {accounts.length} Aktif Hesap
+                            </span>
+                            <span style={{ color: 'var(--secondary)', fontWeight: '700' }}>Detaylar →</span>
                         </div>
                     </div>
 
-                    <div style={{ textAlign: 'right', minWidth: '200px' }}>
-                        <div style={{ display: 'flex', gap: '20px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                            <div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '3px' }}>Alacak</div>
-                                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#4caf50' }}>
-                                    {formatCurrency(receivableStats.totalReceivable, 'TRY')}
-                                </div>
+                    {/* Card 2: BU AY ÖDENECEK BORÇ */}
+                    <div
+                        className="card card-clickable"
+                        onClick={() => navigate('/payments')}
+                        style={{
+                            background: '#141417',
+                            border: '1px solid var(--border)',
+                            borderRadius: '16px',
+                            padding: '18px 20px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between'
+                        }}
+                    >
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: '10px'
+                        }}>
+                            <span style={{
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                color: 'var(--text-muted)',
+                                letterSpacing: '0.05em'
+                            }}>
+                                BU AY ÖDENECEK BORÇ
+                            </span>
+                            <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '2px 8px',
+                                borderRadius: '9999px',
+                                background: 'rgba(245, 158, 11, 0.12)',
+                                color: 'var(--warning)',
+                                fontSize: '11px',
+                                fontWeight: '700'
+                            }}>
+                                {paymentStats.list.filter(p => p.status !== 'PAID').length} Bekleyen
+                            </span>
+                        </div>
+
+                        <div style={{ marginBottom: '12px' }}>
+                            <div style={{ fontSize: '1.65rem', fontWeight: '800', color: '#FFFFFF', letterSpacing: '-0.02em' }}>
+                                ₺ {paymentStats.pending.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
-                            <div style={{ color: 'var(--border)', fontSize: '20px' }}>|</div>
-                            <div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '3px' }}>Borç</div>
-                                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#f44336' }}>
-                                    {formatCurrency(receivableStats.totalDebt, 'TRY')}
-                                </div>
+                        </div>
+
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingTop: '10px',
+                            borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                            fontSize: '11px'
+                        }}>
+                            <span style={{ color: 'var(--text-muted)' }}>
+                                Toplam Yükümlülük: ₺{paymentStats.total.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
+                            </span>
+                            <span style={{ color: 'var(--error)', fontWeight: '700' }}>Ödeme Yap →</span>
+                        </div>
+                    </div>
+
+                    {/* Card 3: ÖDENEN FATURALAR */}
+                    <div
+                        className="card card-clickable"
+                        onClick={() => navigate('/payments')}
+                        style={{
+                            background: '#141417',
+                            border: '1px solid var(--border)',
+                            borderRadius: '16px',
+                            padding: '18px 20px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between'
+                        }}
+                    >
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: '10px'
+                        }}>
+                            <span style={{
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                color: 'var(--text-muted)',
+                                letterSpacing: '0.05em'
+                            }}>
+                                ÖDENEN FATURALAR
+                            </span>
+                            <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '2px 8px',
+                                borderRadius: '9999px',
+                                background: 'rgba(34, 197, 94, 0.12)',
+                                color: 'var(--primary)',
+                                fontSize: '11px',
+                                fontWeight: '700'
+                            }}>
+                                %{paymentStats.total > 0 ? Math.round((paymentStats.paid / paymentStats.total) * 100) : 0} tamamlandı
+                            </span>
+                        </div>
+
+                        <div style={{ marginBottom: '12px' }}>
+                            <div style={{ fontSize: '1.65rem', fontWeight: '800', color: '#FFFFFF', letterSpacing: '-0.02em' }}>
+                                ₺ {paymentStats.paid.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
-                            <div style={{ color: 'var(--border)', fontSize: '20px' }}>|</div>
-                            <div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '3px' }}>Net</div>
-                                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: receivableStats.net >= 0 ? '#4caf50' : '#f44336' }}>
-                                    {receivableStats.net >= 0 ? '+' : ''}{formatCurrency(Math.abs(receivableStats.net), 'TRY')}
-                                </div>
+                        </div>
+
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            paddingTop: '8px',
+                            borderTop: '1px solid rgba(255, 255, 255, 0.05)'
+                        }}>
+                            <div style={{
+                                width: '100%',
+                                height: '5px',
+                                background: '#1C1C21',
+                                borderRadius: '9999px',
+                                overflow: 'hidden'
+                            }}>
+                                <div style={{
+                                    height: '100%',
+                                    width: `${paymentStats.total > 0 ? Math.min(Math.round((paymentStats.paid / paymentStats.total) * 100), 100) : 0}%`,
+                                    background: 'var(--primary)',
+                                    borderRadius: '9999px'
+                                }} />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)' }}>
+                                <span>{paymentStats.list.filter(p => p.status === 'PAID').length} Ödendi</span>
+                                <span style={{ color: 'var(--primary)', fontWeight: '600' }}>İyi gidiyor</span>
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ color: 'var(--text-muted)', marginLeft: '15px' }}>
-                        <FaArrowRight size={20} />
+                    {/* Card 4: ALACAK / BORÇ DENGESİ */}
+                    <div
+                        className="card card-clickable"
+                        onClick={() => navigate('/receivables')}
+                        style={{
+                            background: '#141417',
+                            border: '1px solid var(--border)',
+                            borderRadius: '16px',
+                            padding: '18px 20px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between'
+                        }}
+                    >
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: '10px'
+                        }}>
+                            <span style={{
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                color: 'var(--text-muted)',
+                                letterSpacing: '0.05em'
+                            }}>
+                                BORÇ / ALACAK NET
+                            </span>
+                            <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '2px 8px',
+                                borderRadius: '9999px',
+                                background: receivableStats.net >= 0 ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                                color: receivableStats.net >= 0 ? 'var(--primary)' : 'var(--error)',
+                                fontSize: '11px',
+                                fontWeight: '700'
+                            }}>
+                                {receivableStats.net >= 0 ? 'Net Pozitif' : 'Net Negatif'}
+                            </span>
+                        </div>
+
+                        <div style={{ marginBottom: '12px' }}>
+                            <div style={{
+                                fontSize: '1.65rem',
+                                fontWeight: '800',
+                                color: receivableStats.net >= 0 ? 'var(--primary)' : 'var(--error)',
+                                letterSpacing: '-0.02em'
+                            }}>
+                                {receivableStats.net >= 0 ? '+' : ''}₺ {Math.abs(receivableStats.net).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                        </div>
+
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingTop: '10px',
+                            borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                            fontSize: '11px'
+                        }}>
+                            <span style={{ color: 'var(--text-muted)' }}>
+                                Alacak: ₺{receivableStats.totalReceivable.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
+                            </span>
+                            <span style={{ color: 'var(--secondary)', fontWeight: '700' }}>Kayıtlar →</span>
+                        </div>
                     </div>
                 </div>
 

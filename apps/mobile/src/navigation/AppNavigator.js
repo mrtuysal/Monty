@@ -23,24 +23,49 @@ function MainTabs() {
             screenOptions={({ route }) => ({
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: '#0f0f0f',
-                    borderTopColor: '#2c2c2e',
-                    height: 65,
-                    paddingBottom: 10,
-                    paddingTop: 5,
+                    backgroundColor: Colors.surfaceLowest || '#0E0E10',
+                    borderTopColor: Colors.border || 'rgba(255, 255, 255, 0.08)',
+                    borderTopWidth: 1,
+                    height: 64,
+                    paddingBottom: 8,
+                    paddingTop: 6,
+                    elevation: 12,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: -4 },
+                    shadowOpacity: 0.4,
+                    shadowRadius: 16,
                 },
-                tabBarActiveTintColor: Colors.primary,
-                tabBarInactiveTintColor: Colors.textSecondary,
-                tabBarIcon: ({ focused, color, size }) => {
+                tabBarActiveTintColor: Colors.secondary || '#E8F54A',
+                tabBarInactiveTintColor: Colors.textSecondary || '#A1A1AA',
+                tabBarIcon: ({ focused, color }) => {
                     let iconName;
-                    if (route.name === 'Ana Sayfa') iconName = focused ? 'home' : 'home-outline';
-                    else if (route.name === 'Ödemeler') iconName = focused ? 'card' : 'card-outline';
+                    if (route.name === 'Ana Sayfa') iconName = focused ? 'grid' : 'grid-outline';
+                    else if (route.name === 'Ödemeler') iconName = focused ? 'receipt' : 'receipt-outline';
                     else if (route.name === 'Hesaplar') iconName = focused ? 'wallet' : 'wallet-outline';
-                    else if (route.name === 'Alacak/Borç') iconName = focused ? 'people' : 'people-outline';
+                    else if (route.name === 'Alacak/Borç') iconName = focused ? 'swap-horizontal' : 'swap-horizontal-outline';
                     else if (route.name === 'Ayarlar') iconName = focused ? 'settings' : 'settings-outline';
-                    return <Ionicons name={iconName} size={22} color={color} />;
+                    return (
+                        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                            <Ionicons name={iconName} size={21} color={color} />
+                            {focused && (
+                                <View
+                                    style={{
+                                        width: 4,
+                                        height: 4,
+                                        borderRadius: 2,
+                                        backgroundColor: Colors.secondary || '#E8F54A',
+                                        marginTop: 2,
+                                    }}
+                                />
+                            )}
+                        </View>
+                    );
                 },
-                tabBarLabelStyle: { fontSize: 10 },
+                tabBarLabelStyle: {
+                    fontSize: 10,
+                    fontWeight: '600',
+                    letterSpacing: 0.2,
+                },
             })}
         >
             <Tab.Screen name="Ana Sayfa" component={DashboardScreen} />

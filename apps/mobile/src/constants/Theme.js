@@ -1,26 +1,34 @@
 export const Colors = {
-    background: '#0a0a0a',
-    surface: '#1c1c1e',
-    primary: '#6C63FF', // Primary accent color (Purple/Blue vibe)
-    secondary: '#FF6584', // Secondary accent (Pink/Red)
-    success: '#32D74B', // Success green
-    error: '#FF453A', // Error red
-    text: '#FFFFFF',
-    textSecondary: '#8E8E93',
-    border: '#2c2c2e',
-    cardGradientStart: '#202022',
-    cardGradientEnd: '#151515',
-    glass: 'rgba(28, 28, 30, 0.65)'
+    background: '#09090B', // Obsidian deep black
+    surface: '#141417',    // Deep zinc card background
+    surfaceHigh: '#1C1C21',// Secondary container / hover
+    surfaceHighest: '#2A2A2C',
+    primary: '#22C55E',    // Emerald Neon Green
+    primaryContainer: '#22C55E',
+    secondary: '#E8F54A',  // Volt / Cyber Lime (Stitch signature accent)
+    secondaryFixed: '#DFEC42',
+    success: '#22C55E',    // Green
+    warning: '#F59E0B',    // Amber
+    error: '#EF4444',      // Red
+    text: '#FAFAFA',       // High-contrast white
+    textSecondary: '#A1A1AA', // Zinc muted text
+    textMuted: '#71717A',
+    border: 'rgba(255, 255, 255, 0.08)',
+    borderStrong: 'rgba(255, 255, 255, 0.16)',
+    cardGradientStart: '#141417',
+    cardGradientEnd: '#09090B',
+    glass: 'rgba(20, 20, 23, 0.85)'
 };
 
 export const Typography = {
-    h1: { fontSize: 28, fontWeight: 'bold', color: Colors.text },
-    h2: { fontSize: 22, fontWeight: '600', color: Colors.text },
-    body: { fontSize: 16, color: Colors.textSecondary },
-    caption: { fontSize: 12, color: Colors.textSecondary }
+    h1: { fontSize: 26, fontWeight: '700', color: Colors.text, letterSpacing: -0.5 },
+    h2: { fontSize: 20, fontWeight: '600', color: Colors.text, letterSpacing: -0.3 },
+    body: { fontSize: 14, color: Colors.textSecondary },
+    caption: { fontSize: 11, color: Colors.textMuted }
 };
 
 export const Layout = {
-    screenPadding: 20,
+    screenPadding: 16,
     borderRadius: 16
 };
+
