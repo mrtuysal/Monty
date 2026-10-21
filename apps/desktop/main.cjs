@@ -179,24 +179,6 @@ ipcMain.handle('clear-session-data', async () => {
     }
 });
 
-// ═══════════════════════════════════════════
-//  OAuth Loopback Server (Secure Browser Login)
-// ═══════════════════════════════════════════
-let activeOAuthServer = null;
-let activeOAuthTimeout = null;
-
-function cleanupOAuthServer() {
-    if (activeOAuthTimeout) {
-        clearTimeout(activeOAuthTimeout);
-        activeOAuthTimeout = null;
-    }
-    if (activeOAuthServer) {
-        try {
-            activeOAuthServer.close();
-        } catch (e) { }
-        activeOAuthServer = null;
-    }
-}
 
 // ═══════════════════════════════════════════
 //  OAuth Loopback Server (Secure Browser Login)
