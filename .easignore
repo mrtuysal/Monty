@@ -1,0 +1,34 @@
+# Node dependencies
+node_modules/
+apps/*/node_modules/
+.expo/
+apps/*/.expo/
+
+# Desktop app (not needed for mobile build)
+apps/desktop/
+dist/
+out/
+release/
+scratch/
+backups/
+local_cloud_storage/
+
+# Android build outputs, caches & machine-specific configs
+**/local.properties
+**/android/build/
+**/android/app/build/
+**/android/.gradle/
+**/android/.kotlin/
+**/android/app/.cxx/
+**/.cxx/
+**/*.iml
+**/.idea/
+**/.vscode/
+
+# APK outputs
+*.apk
+apps/mobile/*.apk
+
+# Keep keystores for Android signing
+!apps/mobile/android/app/monty-release.keystore
+!apps/mobile/android/app/debug.keystore

@@ -1,7 +1,21 @@
+# Node modules & expo
 node_modules/
 .expo/
-android/app/build/
+
+# Android machine-specific files & build caches
+android/local.properties
 android/build/
+android/app/build/
 android/.gradle/
-.idea/
+android/.kotlin/
+android/app/.cxx/
+android/.idea/
+android/**/*.iml
+
+# Android APK builds
+android/app/build/outputs/
 *.apk
+
+# Keep keystores for signing
+!android/app/monty-release.keystore
+!android/app/debug.keystore

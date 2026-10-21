@@ -47,9 +47,19 @@ Thirdparty.txt
 # Scratch scripts
 scratch/
 
+# Android build outputs & local machine configs
+**/local.properties
+**/android/build/
+**/android/app/build/
+**/android/.gradle/
+**/android/.kotlin/
+**/android/app/.cxx/
+**/.cxx/
+
 # Android Keystores
 *.keystore
 !apps/mobile/android/app/debug.keystore
+!apps/mobile/android/app/monty-release.keystore
 *.jks
 
 # Mobile APK builds
