@@ -1,73 +1,97 @@
 import { Alert, Linking, Platform } from 'react-native';
-// We read the local version from package.json
 import pkg from '../../package.json';
 
-// GitHub Repository Raw URL for package.json
-// Replace with your actual username/repo if different
-const GITHUB_PACKAGE_JSON_URL = 'https://raw.githubusercontent.com/mrtuysal/Monty/main/apps/mobile/package.json';
+const GITHUB_REPO_OWNER = 'mrtuysal';
+const GITHUB_REPO_NAME = 'Monty';
+const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases/latest`;
+const FALLBACK_RELEASES_URL = `https://github.com/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases/latest`;
 
-// Where the user can download the latest APK (Releases page)
-const APK_DOWNLOAD_URL = 'https://github.com/mrtuysal/Monty/releases/latest';
-
+/**
+ * Checks GitHub Releases for a newer mobile release APK
+ * @param {boolean} silent - If true, doesn't show alert if app is already up to date or on network error
+ */
 export const checkForUpdates = async (silent = true) => {
     try {
-        // Fetch the remote package.json from GitHub
-        const response = await fetch(GITHUB_PACKAGE_JSON_URL + '?t=' + new Date().getTime()); // Add timestamp to prevent caching
+        const response = await fetch(GITHUB_API_URL, {
+            headers: {
+                'Accept': 'application/vnd.github.v3+json',
+                'User-Agent': 'Monty-Mobile-App'
+            }
+        });
 
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error(`GitHub API HTTP ${response.status}`);
         }
 
-        const remotePkg = await response.json();
-        const remoteVersion = remotePkg.version;
-        const localVersion = pkg.version;
+        const release = await response.json();
+        const rawTag = release.tag_name || '';
+        const remoteVersion = rawTag.replace(/^v/i, '').trim();
+        const localVersion = (pkg.version || '2.2.0').trim();
 
-        // Compare versions (simple logic: if not equal and remote > local)
+        // Find APK asset if uploaded to release
+        const apkAsset = (release.assets || []).find(a =>
+            a.name && (a.name.endsWith('.apk') || a.name.includes('.apk'))
+        );
+        const downloadUrl = apkAsset?.browser_download_url || release.html_url || FALLBACK_RELEASES_URL;
+
         if (isUpdateAvailable(localVersion, remoteVersion)) {
-            showUpdateAlert(remoteVersion);
-            return { hasUpdate: true, version: remoteVersion };
+            showUpdateAlert(remoteVersion, downloadUrl, release.body);
+            return { hasUpdate: true, version: remoteVersion, downloadUrl };
         } else {
             if (!silent) {
-                Alert.alert('Zaten Güncel', 'Uygulamanın en son sürümünü kullanıyorsunuz.');
+                Alert.alert(
+                    'Uygulama Güncel',
+                    `En son sürümü (v${localVersion}) kullanıyorsunuz.`
+                );
             }
-            return { hasUpdate: false };
+            return { hasUpdate: false, version: localVersion };
         }
     } catch (error) {
-        console.error('Update check failed:', error);
+        console.warn('Update check failed:', error);
         if (!silent) {
-            Alert.alert('Hata', 'Güncelleme kontrolü yapılamadı. Lütfen internet bağlantınızı kontrol edin.');
+            Alert.alert(
+                'Kontrol Edilemedi',
+                'Güncelleme kontrolü sırasında bir sorun oluştu. İnternet bağlantınızı kontrol edip tekrar deneyin.'
+            );
         }
         return { hasUpdate: false, error };
     }
 };
 
-const showUpdateAlert = (newVersion) => {
+const showUpdateAlert = (newVersion, downloadUrl, releaseNotes) => {
+    const notesSummary = releaseNotes
+        ? `\n\nYenilikler:\n${releaseNotes.slice(0, 180)}${releaseNotes.length > 180 ? '...' : ''}`
+        : '';
+
     Alert.alert(
-        'Yeni Güncelleme Mevcut!',
-        `Monty v${newVersion} versiyonu yayınlandı.\n\nYeni özellikleri kullanabilmek için lütfen uygulamanızı güncelleyin.`,
+        'Yeni Güncelleme Mevcut! 🚀',
+        `Monty v${newVersion} yayınlandı (Mevcut: v${pkg.version}).${notesSummary}\n\nYeni özellikleri ve güvenlik iyileştirmelerini kullanmak için güncelleyin.`,
         [
             {
-                text: 'İptal',
+                text: 'Daha Sonra',
                 style: 'cancel',
             },
             {
-                text: 'Şimdi İndir',
+                text: 'Şimdi Güncelle (APK)',
                 onPress: () => {
-                    // Open the GitHub releases page in the default browser
-                    Linking.openURL(APK_DOWNLOAD_URL).catch(err =>
-                        console.error('An error occurred trying to open the URL', err)
-                    );
+                    Linking.openURL(downloadUrl).catch(err => {
+                        console.error('Failed to open download url:', err);
+                        Linking.openURL(FALLBACK_RELEASES_URL);
+                    });
                 },
             },
         ],
-        { cancelable: false }
+        { cancelable: true }
     );
 };
 
-// Helper to compare semver versions (e.g. 1.0.1 vs 1.1.0)
-const isUpdateAvailable = (localStatus, remoteStatus) => {
-    const local = localStatus.split('.').map(Number);
-    const remote = remoteStatus.split('.').map(Number);
+/**
+ * Semver compare: returns true if remote > local
+ */
+export const isUpdateAvailable = (localStatus, remoteStatus) => {
+    if (!remoteStatus) return false;
+    const local = (localStatus || '0.0.0').split('.').map(n => parseInt(n, 10) || 0);
+    const remote = (remoteStatus || '0.0.0').split('.').map(n => parseInt(n, 10) || 0);
 
     for (let i = 0; i < Math.max(local.length, remote.length); i++) {
         const l = local[i] || 0;
@@ -75,5 +99,5 @@ const isUpdateAvailable = (localStatus, remoteStatus) => {
         if (r > l) return true;
         if (r < l) return false;
     }
-    return false; // They are equal
+    return false;
 };
