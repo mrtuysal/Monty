@@ -2,7 +2,7 @@
   "expo": {
     "name": "Monty",
     "slug": "monty-mobile",
-    "version": "2.4.0",
+    "version": "2.4.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -19,11 +19,11 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#f4f431"
+        "backgroundColor": "#0a0a0a"
       },
+      "versionCode": 5,
       "edgeToEdgeEnabled": true,
-      "package": "com.monty.mobile",
-      "versionCode": 5
+      "package": "com.monty.mobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"

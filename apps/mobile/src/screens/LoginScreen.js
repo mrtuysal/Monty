@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, StyleSheet,
-    KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert
+    KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -118,12 +118,13 @@ export default function LoginScreen() {
                 >
                     {/* Logo */}
                     <View style={styles.logoContainer}>
-                        <LinearGradient
-                            colors={['#FFD700', '#FFA500']}
-                            style={styles.logoBox}
-                        >
-                            <Text style={{ fontSize: 40 }}>🍌</Text>
-                        </LinearGradient>
+                        <View style={styles.logoBox}>
+                            <Image
+                                source={require('../../assets/icon.png')}
+                                style={{ width: 80, height: 80, borderRadius: 20 }}
+                                resizeMode="cover"
+                            />
+                        </View>
                         <Text style={styles.appName}>Monty</Text>
                         <Text style={styles.tagline}>Finansal Özgürlüğe Adım At</Text>
                     </View>
@@ -265,11 +266,11 @@ const styles = StyleSheet.create({
         width: 80, height: 80, borderRadius: 20,
         alignItems: 'center', justifyContent: 'center',
         marginBottom: 15,
-        shadowColor: '#FFD700',
-        shadowOffset: { width: 0, height: 5 },
-        shadowOpacity: 0.4,
-        shadowRadius: 15,
-        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+        elevation: 8,
     },
     appName: {
         fontSize: 34, fontWeight: 'bold', color: '#fff',

@@ -109,14 +109,13 @@ export default function DashboardScreen({ navigation }) {
             <View style={styles.topAppBar}>
                 <View style={styles.brandRow}>
                     <View style={styles.brandLogoWrapper}>
-                        <Ionicons name="sparkles" size={18} color={Colors.secondary} />
+                        <Image
+                            source={require('../../assets/icon.png')}
+                            style={{ width: 34, height: 34, borderRadius: 10 }}
+                            resizeMode="cover"
+                        />
                     </View>
-                    <View style={styles.brandTitleRow}>
-                        <Text style={styles.brandName}>Monty</Text>
-                        <View style={styles.proBadge}>
-                            <Text style={styles.proBadgeText}>PRO</Text>
-                        </View>
-                    </View>
+                    <Text style={styles.brandName}>Monty</Text>
                 </View>
 
                 <View style={styles.topActionsRow}>

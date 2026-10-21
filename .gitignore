@@ -46,3 +46,12 @@ Thirdparty.txt
 
 # Scratch scripts
 scratch/
+
+# Android Keystores
+*.keystore
+!apps/mobile/android/app/debug.keystore
+*.jks
+
+# Mobile APK builds
+*.apk
+apps/mobile/*.apk

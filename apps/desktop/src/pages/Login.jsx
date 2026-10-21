@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { FaGoogle, FaApple, FaEnvelope, FaLock, FaUser } from 'react-icons/fa';
 import { useData } from '../context/DataContext';
+import montyLogo from '../assets/logo.png';
 
 export default function Login() {
 
@@ -194,21 +195,24 @@ export default function Login() {
                 flexDirection: 'column',
                 gap: '20px'
             }}>
-                {/* Logo Placeholder */}
+                {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: '10px' }}>
                     <div style={{
                         width: '80px',
                         height: '80px',
-                        background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                        borderRadius: '20px',
-                        margin: '0 auto 20px',
+                        margin: '0 auto 16px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '40px',
-                        boxShadow: '0 0 20px rgba(255, 215, 0, 0.4)'
+                        borderRadius: '20px',
+                        overflow: 'hidden',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
                     }}>
-                        🍌
+                        <img
+                            src={montyLogo}
+                            alt="Monty Logo"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
                     </div>
                     <h1 className="gradient-text" style={{ fontSize: '2rem', margin: 0 }}>Monty</h1>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '5px' }}>

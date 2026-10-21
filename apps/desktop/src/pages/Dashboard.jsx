@@ -387,9 +387,9 @@ export default function Dashboard() {
                     gap: '8px',
                     padding: '6px 14px',
                     borderRadius: '9999px',
-                    background: 'rgba(34, 197, 94, 0.1)',
-                    border: '1px solid rgba(34, 197, 94, 0.25)',
-                    color: 'var(--primary)',
+                    background: 'rgba(232, 245, 74, 0.08)',
+                    border: '1px solid rgba(232, 245, 74, 0.25)',
+                    color: 'var(--secondary)',
                     fontSize: '12px',
                     fontWeight: '700'
                 }}>
@@ -397,10 +397,10 @@ export default function Dashboard() {
                         width: '7px',
                         height: '7px',
                         borderRadius: '50%',
-                        background: 'var(--primary)',
-                        boxShadow: '0 0 8px var(--primary)'
+                        background: 'var(--secondary)',
+                        boxShadow: '0 0 8px var(--secondary)'
                     }} />
-                    <span>Finansal Sağlık Skoru: 88/100 (Kusursuz)</span>
+                    <span>Dönem: {MONTHS[selectedDate.month]} {selectedDate.year}</span>
                 </div>
             </div>
 

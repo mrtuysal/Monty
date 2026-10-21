@@ -4,6 +4,7 @@ import { FaHome, FaWallet, FaCreditCard, FaCog, FaHandshake, FaSyncAlt, FaEllips
 import clsx from 'clsx';
 import pkg from '../../package.json';
 import montyLogo from '../assets/logo.png';
+import { useData } from '../context/DataContext';
 import './Layout.css';
 
 const APP_VERSION = pkg?.version || '2.4.0';
@@ -21,9 +22,13 @@ const SidebarItem = ({ to, icon, label, badge, count }) => (
 );
 
 export default function Layout({ children }) {
+    const { session, userProfile } = useData();
     const [version, setVersion] = useState(APP_VERSION);
-    const [syncTime, setSyncTime] = useState('2 dk önce');
+    const [syncTime, setSyncTime] = useState('Şimdi');
     const [isSyncing, setIsSyncing] = useState(false);
+
+    const displayName = userProfile?.fullName || session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || 'Kullanıcı';
+    const displayInitials = displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'M';
 
     useEffect(() => {
         if (window.electronAPI?.getAppVersion) {
@@ -49,7 +54,7 @@ export default function Layout({ children }) {
             {/* Stitch Sidebar Navigation */}
             <aside className="sidebar">
                 <div className="sidebar-top">
-                    {/* Header / Logo & Plan */}
+                    {/* Header / Logo */}
                     <div className="sidebar-brand">
                         <div className="brand-left">
                             <div className="logo-img-wrapper">
@@ -59,7 +64,7 @@ export default function Layout({ children }) {
                                 <span className="brand-name">Monty</span>
                                 <div className="brand-status">
                                     <span className="status-pulse-dot" />
-                                    <span className="brand-plan">PRO Plan</span>
+                                    <span className="brand-plan">Kişisel Finans</span>
                                 </div>
                             </div>
                         </div>
@@ -78,14 +83,11 @@ export default function Layout({ children }) {
 
                 {/* Bottom Sidebar Section */}
                 <div className="sidebar-bottom">
-                    {/* Pro Bank Sync Mini Widget */}
+                    {/* Cloud Sync Mini Widget */}
                     <div className="sync-widget">
                         <div className="sync-widget-header">
-                            <span className="sync-title">Banka Entegrasyonları</span>
+                            <span className="sync-title">Bulut Senkronizasyonu</span>
                             <span className="sync-active-count">Aktif</span>
-                        </div>
-                        <div className="sync-progress-bar">
-                            <div className="sync-progress-fill" />
                         </div>
                         <div className="sync-widget-footer">
                             <span className="sync-timestamp">
@@ -97,7 +99,7 @@ export default function Layout({ children }) {
                                 onClick={handleSync}
                                 disabled={isSyncing}
                             >
-                                {isSyncing ? '...' : 'Yenile'}
+                                {isSyncing ? '...' : 'Eşitle'}
                             </button>
                         </div>
                     </div>
@@ -105,10 +107,10 @@ export default function Layout({ children }) {
                     {/* User Profile Card */}
                     <div className="user-profile-card">
                         <div className="profile-left">
-                            <div className="profile-avatar">MY</div>
+                            <div className="profile-avatar">{displayInitials}</div>
                             <div className="profile-info">
-                                <span className="profile-name">Murat Yılmaz</span>
-                                <span className="profile-tier">Premium Plan</span>
+                                <span className="profile-name">{displayName}</span>
+                                <span className="profile-tier">Kişisel Hesap</span>
                             </div>
                         </div>
                         <FaEllipsisV className="profile-menu-icon" />
