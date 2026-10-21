@@ -22,6 +22,19 @@ const PAYMENT_TYPES = [
     { key: 'OTHER', label: 'Diğer', emoji: '📋' },
 ];
 
+const FILTER_TABS = [
+    { key: 'ALL', label: 'Tümü', icon: 'apps-outline', activeIcon: 'apps' },
+    { key: 'CREDIT_CARD', label: 'Kart', icon: 'card-outline', activeIcon: 'card' },
+    { key: 'BILL', label: 'Fatura', icon: 'receipt-outline', activeIcon: 'receipt' },
+    { key: 'LOAN', label: 'Kredi', icon: 'cash-outline', activeIcon: 'cash' },
+    { key: 'OTHER', label: 'Diğer', icon: 'grid-outline', activeIcon: 'grid' },
+];
+
+const MONTH_NAMES = [
+    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+];
+
 const STATUS_MAP = {
     PENDING: { label: 'Bekliyor', color: '#FF9500' },
     PAID: { label: 'Ödendi', color: Colors.success },
@@ -58,6 +71,11 @@ export default function PaymentsScreen() {
     const [actionPayment, setActionPayment] = useState(null);
     const [showDatePicker, setShowDatePicker] = useState({ visible: false, field: null });
 
+    // Ay ve Yıl Filtresi - Varsayılan: Mevcut Ay ve Yıl
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); // 0-11 veya 'ALL'
+    const [isMonthPickerVisible, setIsMonthPickerVisible] = useState(false);
+
     const handleDateChange = (event, selectedDate) => {
         if (Platform.OS === 'android') {
             setShowDatePicker({ visible: false, field: null });
@@ -74,10 +92,56 @@ export default function PaymentsScreen() {
     };
 
     const filteredPayments = useMemo(() => {
-        return [...payments]
-            .filter(p => filter === 'ALL' || p.type === filter)
-            .sort((a, b) => new Date(a.dueDate || 0) - new Date(b.dueDate || 0));
-    }, [payments, filter]);
+        // 1. Ay ve Yıl Filtresi
+        const monthFiltered = (payments || []).filter(payment => {
+            const dateStr = payment.dueDate || payment.statementDate;
+            if (selectedMonth === 'ALL') {
+                if (!dateStr) return true;
+                const date = new Date(dateStr);
+                return isNaN(date.getFullYear()) || date.getFullYear() === selectedYear;
+            }
+            if (!dateStr) {
+                // Tarihi olmayan ödemeleri gözden kaçmaması için mevcut ayda göster
+                return selectedMonth === new Date().getMonth() && selectedYear === new Date().getFullYear();
+            }
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) {
+                return selectedMonth === new Date().getMonth() && selectedYear === new Date().getFullYear();
+            }
+            return date.getFullYear() === selectedYear && date.getMonth() === selectedMonth;
+        });
+
+        // 2. Kategori Filtresi
+        const categoryFiltered = monthFiltered.filter(p => filter === 'ALL' || p.type === filter);
+
+        // 3. Sıralama: Kredi Kartı > Fatura > Kredi > Diğer, ardından Tarih
+        const typeOrder = { 'CREDIT_CARD': 1, 'BILL': 2, 'LOAN': 3, 'OTHER': 4 };
+
+        return categoryFiltered.sort((a, b) => {
+            const orderA = typeOrder[a.type] || 4;
+            const orderB = typeOrder[b.type] || 4;
+            if (orderA !== orderB) return orderA - orderB;
+
+            const dateA = new Date(a.dueDate || a.statementDate || 0);
+            const dateB = new Date(b.dueDate || b.statementDate || 0);
+            return dateA - dateB;
+        });
+    }, [payments, filter, selectedYear, selectedMonth]);
+
+    // Seçili yıldaki aylara göre ödeme sayıları
+    const monthStats = useMemo(() => {
+        const counts = {};
+        (payments || []).forEach(p => {
+            const dateStr = p.dueDate || p.statementDate;
+            if (!dateStr) return;
+            const d = new Date(dateStr);
+            if (!isNaN(d.getTime()) && d.getFullYear() === selectedYear) {
+                const m = d.getMonth();
+                counts[m] = (counts[m] || 0) + 1;
+            }
+        });
+        return counts;
+    }, [payments, selectedYear]);
 
     const totals = useMemo(() => {
         let total = 0;
@@ -128,6 +192,15 @@ export default function PaymentsScreen() {
         setForm(initialForm);
         setEditingId(null);
         setModalVisible(false);
+
+        // Kaydedilen ödemenin dönemine otomatik git
+        if (paymentData.dueDate) {
+            const d = new Date(paymentData.dueDate);
+            if (!isNaN(d.getTime())) {
+                setSelectedYear(d.getFullYear());
+                setSelectedMonth(d.getMonth());
+            }
+        }
     }, [form, addPayment, updatePayment, editingId]);
 
     const handleEdit = useCallback((payment) => {
@@ -272,26 +345,104 @@ export default function PaymentsScreen() {
                 </TouchableOpacity>
             </View>
 
-            {/* Filters */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar}>
+            {/* Ay ve Yıl Gezinti Çubuğu */}
+            <View style={styles.monthNavigator}>
                 <TouchableOpacity
-                    style={[styles.filterChip, filter === 'ALL' && styles.filterActive]}
-                    onPress={() => setFilter('ALL')}
+                    style={styles.monthNavBtn}
+                    onPress={() => {
+                        if (selectedMonth === 'ALL') {
+                            setSelectedMonth(new Date().getMonth());
+                        } else if (selectedMonth === 0) {
+                            setSelectedMonth(11);
+                            setSelectedYear(prev => prev - 1);
+                        } else {
+                            setSelectedMonth(prev => prev - 1);
+                        }
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                    <Text style={[styles.filterText, filter === 'ALL' && styles.filterActiveText]}>Tümü</Text>
+                    <Ionicons name="chevron-back" size={18} color="#fff" />
                 </TouchableOpacity>
-                {PAYMENT_TYPES.map(t => (
-                    <TouchableOpacity
-                        key={t.key}
-                        style={[styles.filterChip, filter === t.key && styles.filterActive]}
-                        onPress={() => setFilter(t.key)}
-                    >
-                        <Text style={[styles.filterText, filter === t.key && styles.filterActiveText]}>
-                            {t.emoji} {t.label}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
+
+                <TouchableOpacity
+                    style={styles.monthCenter}
+                    onPress={() => setIsMonthPickerVisible(true)}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="calendar-outline" size={14} color={Colors.primary} style={{ marginRight: 6 }} />
+                    <Text style={styles.monthTitle}>
+                        {selectedMonth === 'ALL' ? `Tüm Yıl (${selectedYear})` : `${MONTH_NAMES[selectedMonth]} ${selectedYear}`}
+                    </Text>
+                    <Ionicons name="chevron-down" size={13} color={Colors.textSecondary} style={{ marginLeft: 4 }} />
+                    {selectedMonth !== 'ALL' && selectedMonth === new Date().getMonth() && selectedYear === new Date().getFullYear() && (
+                        <View style={styles.currentMonthBadge}>
+                            <Text style={styles.currentMonthBadgeText}>Bu Ay</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.monthNavBtn}
+                    onPress={() => {
+                        if (selectedMonth === 'ALL') {
+                            setSelectedMonth(new Date().getMonth());
+                        } else if (selectedMonth === 11) {
+                            setSelectedMonth(0);
+                            setSelectedYear(prev => prev + 1);
+                        } else {
+                            setSelectedMonth(prev => prev + 1);
+                        }
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                    <Ionicons name="chevron-forward" size={18} color="#fff" />
+                </TouchableOpacity>
+
+                {/* Hızlı Tüm Yıl / Aylık Geçiş Butonu */}
+                <TouchableOpacity
+                    style={[styles.allYearPill, selectedMonth === 'ALL' && styles.allYearPillActive]}
+                    onPress={() => {
+                        if (selectedMonth === 'ALL') {
+                            setSelectedMonth(new Date().getMonth());
+                            setSelectedYear(new Date().getFullYear());
+                        } else {
+                            setSelectedMonth('ALL');
+                        }
+                    }}
+                    activeOpacity={0.7}
+                >
+                    <Text style={[styles.allYearPillText, selectedMonth === 'ALL' && styles.allYearPillTextActive]}>
+                        {selectedMonth === 'ALL' ? 'Aylık' : 'Tüm Yıl'}
+                    </Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Kategori Filtre Butonları - Tek Satırda Eşit Genişlikte */}
+            <View style={styles.filterRow}>
+                {FILTER_TABS.map(tab => {
+                    const isActive = filter === tab.key;
+                    return (
+                        <TouchableOpacity
+                            key={tab.key}
+                            style={[styles.filterTab, isActive && styles.filterTabActive]}
+                            onPress={() => setFilter(tab.key)}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons
+                                name={isActive ? tab.activeIcon : tab.icon}
+                                size={14}
+                                color={isActive ? '#fff' : Colors.textSecondary}
+                            />
+                            <Text
+                                style={[styles.filterTabText, isActive && styles.filterTabTextActive]}
+                                numberOfLines={1}
+                            >
+                                {tab.label}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </View>
 
             {/* Toplam Özeti */}
             <View style={{
@@ -328,8 +479,10 @@ export default function PaymentsScreen() {
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
                         <Ionicons name="document-text-outline" size={50} color={Colors.textSecondary} />
-                        <Text style={{ color: Colors.textSecondary, marginTop: 10, fontSize: 15 }}>
-                            Henüz ödeme yok
+                        <Text style={{ color: Colors.textSecondary, marginTop: 10, fontSize: 14, textAlign: 'center' }}>
+                            {selectedMonth === 'ALL'
+                                ? `${selectedYear} yılı için ödeme bulunamadı`
+                                : `${MONTH_NAMES[selectedMonth]} ${selectedYear} için ödeme bulunmuyor`}
                         </Text>
                     </View>
                 }
@@ -622,6 +775,87 @@ export default function PaymentsScreen() {
                     </View>
                 </TouchableOpacity>
             </Modal>
+
+            {/* Ay Seçici Modal */}
+            <Modal visible={isMonthPickerVisible} animationType="fade" transparent onRequestClose={() => setIsMonthPickerVisible(false)}>
+                <TouchableOpacity
+                    style={styles.monthModalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setIsMonthPickerVisible(false)}
+                >
+                    <TouchableOpacity style={styles.monthModalContent} activeOpacity={1}>
+                        <View style={styles.monthModalHeader}>
+                            <View style={styles.yearSelectorRow}>
+                                <TouchableOpacity
+                                    style={styles.monthNavBtn}
+                                    onPress={() => setSelectedYear(prev => prev - 1)}
+                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                >
+                                    <Ionicons name="chevron-back" size={18} color="#fff" />
+                                </TouchableOpacity>
+                                <Text style={styles.yearTitle}>{selectedYear}</Text>
+                                <TouchableOpacity
+                                    style={styles.monthNavBtn}
+                                    onPress={() => setSelectedYear(prev => prev + 1)}
+                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                >
+                                    <Ionicons name="chevron-forward" size={18} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
+
+                            <TouchableOpacity onPress={() => setIsMonthPickerVisible(false)}>
+                                <Ionicons name="close-circle" size={24} color={Colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.monthGrid}>
+                            {MONTH_NAMES.map((name, idx) => {
+                                const isSelected = selectedMonth === idx;
+                                const count = monthStats[idx] || 0;
+                                const isCurrent = idx === new Date().getMonth() && selectedYear === new Date().getFullYear();
+
+                                return (
+                                    <TouchableOpacity
+                                        key={idx}
+                                        style={[
+                                            styles.monthGridBtn,
+                                            isSelected && styles.monthGridBtnActive,
+                                            isCurrent && !isSelected && styles.monthGridBtnCurrent
+                                        ]}
+                                        onPress={() => {
+                                            setSelectedMonth(idx);
+                                            setIsMonthPickerVisible(false);
+                                        }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={[styles.monthGridBtnText, isSelected && styles.monthGridBtnTextActive]}>
+                                            {name}
+                                        </Text>
+                                        <Text style={[styles.monthBadgeCount, isSelected && styles.monthBadgeCountActive]}>
+                                            {count > 0 ? `${count} ödeme` : '-'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        {/* Tüm Yılı Göster Seçeneği */}
+                        <TouchableOpacity
+                            style={[styles.modalAllYearBtn, selectedMonth === 'ALL' && styles.modalAllYearBtnActive]}
+                            onPress={() => {
+                                setSelectedMonth('ALL');
+                                setIsMonthPickerVisible(false);
+                            }}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="calendar" size={16} color={selectedMonth === 'ALL' ? '#fff' : Colors.primary} />
+                            <Text style={[styles.modalAllYearBtnText, selectedMonth === 'ALL' && styles.modalAllYearBtnTextActive]}>
+                                {selectedYear} Yılının Tüm Ödemelerini Göster
+                            </Text>
+                        </TouchableOpacity>
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 }
@@ -636,15 +870,212 @@ const styles = StyleSheet.create({
         width: 44, height: 44, borderRadius: 14,
         alignItems: 'center', justifyContent: 'center',
     },
-    filterBar: { paddingHorizontal: 15, marginVertical: 12, flexGrow: 0 },
-    filterChip: {
-        paddingHorizontal: 14, paddingVertical: 6, borderRadius: 18,
-        marginRight: 8, backgroundColor: Colors.surface,
-        borderWidth: 1, borderColor: Colors.border,
+
+    // Ay Gezinti Barı
+    monthNavigator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: Layout.screenPadding,
+        marginVertical: 10,
+        gap: 6,
     },
-    filterActive: { backgroundColor: Colors.primary + '20', borderColor: Colors.primary },
-    filterText: { color: Colors.textSecondary, fontSize: 12.5 },
-    filterActiveText: { color: Colors.primary, fontWeight: '600' },
+    monthNavBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    monthCenter: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        paddingVertical: 7,
+        paddingHorizontal: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    monthTitle: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    currentMonthBadge: {
+        marginLeft: 6,
+        backgroundColor: Colors.primary + '25',
+        paddingHorizontal: 5,
+        paddingVertical: 1,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: Colors.primary + '40',
+    },
+    currentMonthBadgeText: {
+        color: Colors.primary,
+        fontSize: 9.5,
+        fontWeight: '700',
+    },
+    allYearPill: {
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        borderRadius: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    allYearPillActive: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary,
+    },
+    allYearPillText: {
+        color: Colors.textSecondary,
+        fontSize: 11.5,
+        fontWeight: '600',
+    },
+    allYearPillTextActive: {
+        color: '#fff',
+        fontWeight: '700',
+    },
+
+    // Kategori Filtre Butonları (Tek Satır, 5 Buton)
+    filterRow: {
+        flexDirection: 'row',
+        paddingHorizontal: Layout.screenPadding,
+        gap: 5,
+        marginBottom: 10,
+    },
+    filterTab: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 7,
+        paddingHorizontal: 2,
+        borderRadius: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        gap: 3,
+    },
+    filterTabActive: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary,
+    },
+    filterTabText: {
+        color: Colors.textSecondary,
+        fontSize: 11,
+        fontWeight: '600',
+        includeFontPadding: false,
+    },
+    filterTabTextActive: {
+        color: '#fff',
+        fontWeight: '700',
+    },
+
+    // Ay Seçici Modal Stilleri
+    monthModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.75)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    monthModalContent: {
+        width: '100%',
+        maxWidth: 360,
+        backgroundColor: Colors.surface,
+        borderRadius: 18,
+        padding: 18,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    monthModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    yearSelectorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    yearTitle: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    monthGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        justifyContent: 'space-between',
+    },
+    monthGridBtn: {
+        width: '31%',
+        paddingVertical: 9,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    monthGridBtnActive: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary,
+    },
+    monthGridBtnCurrent: {
+        borderColor: Colors.primary + '80',
+    },
+    monthGridBtnText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    monthGridBtnTextActive: {
+        color: '#fff',
+        fontWeight: '800',
+    },
+    monthBadgeCount: {
+        marginTop: 2,
+        fontSize: 9.5,
+        color: Colors.textSecondary,
+    },
+    monthBadgeCountActive: {
+        color: 'rgba(255,255,255,0.9)',
+        fontWeight: '700',
+    },
+    modalAllYearBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: 14,
+        paddingVertical: 10,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    modalAllYearBtnActive: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary,
+    },
+    modalAllYearBtnText: {
+        color: Colors.primary,
+        fontSize: 12.5,
+        fontWeight: '700',
+    },
+    modalAllYearBtnTextActive: {
+        color: '#fff',
+        fontWeight: '700',
+    },
 
     // Kompakt 2 Satırlı Ödeme Kartı
     compactPaymentCard: {
