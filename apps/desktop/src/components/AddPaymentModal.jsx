@@ -22,6 +22,19 @@ export default function AddPaymentModal({ isOpen, onClose, onSave, initialData }
     });
     const [formErrors, setFormErrors] = useState({});
 
+    const formatDateForInput = (d) => {
+        if (!d) return '';
+        if (typeof d === 'string') {
+            const match = d.match(/^\d{4}-\d{2}-\d{2}/);
+            if (match) return match[0];
+        }
+        const dateObj = new Date(d);
+        if (!isNaN(dateObj.getTime())) {
+            return dateObj.toISOString().split('T')[0];
+        }
+        return '';
+    };
+
     useEffect(() => {
         if (!isOpen) return; // Prevent unnecessary state updates when closed
 
@@ -29,13 +42,13 @@ export default function AddPaymentModal({ isOpen, onClose, onSave, initialData }
             setPaymentType(initialData.type || 'CREDIT_CARD');
             const parsedRecurring = parseRecurringConfig(initialData.recurringFrequency);
             setFormData({
-                institution: initialData.institution,
-                description: initialData.description,
+                institution: initialData.institution || '',
+                description: initialData.description || '',
                 amount: initialData.amount ? initialData.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '',
                 minPayment: initialData.minPayment ? initialData.minPayment.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '',
                 paymentAmount: initialData.paymentAmount ? initialData.paymentAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '',
-                statementDate: initialData.statementDate,
-                dueDate: initialData.dueDate,
+                statementDate: formatDateForInput(initialData.statementDate),
+                dueDate: formatDateForInput(initialData.dueDate),
                 isRecurring: initialData.isRecurring || false,
                 recurringFrequency: parsedRecurring.frequency || 'MONTHLY',
                 recurringType: parsedRecurring.type || 'INFINITE',

@@ -45,10 +45,22 @@ export default function Payments() {
 
     // Filter & Group Payments
     const filteredPayments = useMemo(() => {
-        const payments = allPayments
+        const payments = (allPayments || [])
             .filter(payment => {
-                // Filter by Due Date
-                const date = new Date(payment.dueDate);
+                const dateStr = payment.dueDate || payment.statementDate;
+                if (selectedMonth === 'ALL') {
+                    if (!dateStr) return true;
+                    const date = new Date(dateStr);
+                    return isNaN(date.getFullYear()) || date.getFullYear() === selectedYear;
+                }
+                if (!dateStr) {
+                    // Tarihi olmayan ödemeleri gözden kaçmaması için geçerli ayda göster
+                    return selectedMonth === new Date().getMonth();
+                }
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) {
+                    return selectedMonth === new Date().getMonth();
+                }
                 return date.getFullYear() === selectedYear && date.getMonth() === selectedMonth;
             });
 
@@ -62,7 +74,9 @@ export default function Payments() {
             if (typeA !== typeB) return typeA - typeB;
 
             // Secondary Sort: Date (Earliest first)
-            return new Date(a.dueDate) - new Date(b.dueDate);
+            const dateA = new Date(a.dueDate || a.statementDate || 0);
+            const dateB = new Date(b.dueDate || b.statementDate || 0);
+            return dateA - dateB;
         });
     }, [allPayments, selectedYear, selectedMonth]);
 
@@ -70,9 +84,10 @@ export default function Payments() {
     const monthStats = useMemo(() => {
         const counts = {};
         (allPayments || []).forEach(p => {
-            if (!p.dueDate) return;
-            const d = new Date(p.dueDate);
-            if (d.getFullYear() === selectedYear) {
+            const dateStr = p.dueDate || p.statementDate;
+            if (!dateStr) return;
+            const d = new Date(dateStr);
+            if (!isNaN(d.getTime()) && d.getFullYear() === selectedYear) {
                 const m = d.getMonth();
                 counts[m] = (counts[m] || 0) + 1;
             }
@@ -109,7 +124,7 @@ export default function Payments() {
                 ? parseFloat(p.balance)
                 : Math.max(0, amt - toPay);
             const isPaid = p.status === 'PAID';
-            const isOverdue = !isPaid && new Date(p.dueDate) < now;
+            const isOverdue = !isPaid && Boolean(p.dueDate) && !isNaN(new Date(p.dueDate).getTime()) && new Date(p.dueDate) < now;
 
             acc.amount += amt;
             acc.minPayment += min;
@@ -187,6 +202,15 @@ export default function Payments() {
         }
         setIsModalOpen(false);
         setEditingPayment(null);
+
+        // Kaydedilen ödemenin dönemine git, böylece listeden kaybolmuş gibi görünmez
+        if (payment.dueDate) {
+            const d = new Date(payment.dueDate);
+            if (!isNaN(d.getTime())) {
+                setSelectedYear(d.getFullYear());
+                setSelectedMonth(d.getMonth());
+            }
+        }
     };
 
     return (
@@ -230,10 +254,44 @@ export default function Payments() {
                 marginBottom: '20px',
                 padding: '6px',
                 display: 'grid',
-                gridTemplateColumns: 'repeat(12, 1fr)',
+                gridTemplateColumns: 'repeat(13, 1fr)',
                 gap: '6px',
                 alignItems: 'center'
             }}>
+                <button
+                    onClick={() => setSelectedMonth('ALL')}
+                    style={{
+                        background: selectedMonth === 'ALL' ? 'var(--primary)' : 'transparent',
+                        color: selectedMonth === 'ALL' ? '#fff' : 'var(--text-muted)',
+                        border: selectedMonth === 'ALL' ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+                        borderRadius: '8px',
+                        padding: '8px 4px',
+                        cursor: 'pointer',
+                        fontWeight: '700',
+                        fontSize: '12.5px',
+                        transition: 'all 0.2s',
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px'
+                    }}
+                >
+                    <span>Tüm Yıl</span>
+                    {allPayments && allPayments.length > 0 && (
+                        <span style={{
+                            fontSize: '10.5px',
+                            fontWeight: '700',
+                            padding: '1px 5px',
+                            borderRadius: '10px',
+                            background: selectedMonth === 'ALL' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
+                            color: '#fff',
+                            lineHeight: '1.3'
+                        }}>
+                            {allPayments.length}
+                        </span>
+                    )}
+                </button>
                 {MONTHS.map((month, index) => {
                     const count = monthStats[index] || 0;
                     const isSelected = selectedMonth === index;
@@ -352,18 +410,30 @@ export default function Payments() {
                                     // Check if group changed
                                     const isGroupStart = index > 0 && filteredPayments[index - 1].type !== item.type;
                                     // Check if Overdue
-                                    const isOverdue = item.status !== 'PAID' && new Date(item.dueDate) < new Date();
+                                    const isOverdue = item.status !== 'PAID' && Boolean(item.dueDate) && !isNaN(new Date(item.dueDate).getTime()) && new Date(item.dueDate) < new Date();
 
                                     return (
                                         <React.Fragment key={item.id}>
-                                            <tr style={{
-                                                borderBottom: '1px solid rgba(255,255,255,0.05)',
-                                                borderTop: isGroupStart ? '2px solid rgba(255, 255, 255, 0.15)' : 'none',
-                                                backgroundColor: isOverdue ? 'rgba(255, 0, 0, 0.3)' : 'transparent'
-                                            }}>
+                                            <tr
+                                                onClick={() => handleEdit(item)}
+                                                style={{
+                                                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                    borderTop: isGroupStart ? '2px solid rgba(255, 255, 255, 0.15)' : 'none',
+                                                    backgroundColor: isOverdue ? 'rgba(255, 69, 58, 0.2)' : 'transparent',
+                                                    cursor: 'pointer',
+                                                    transition: 'background-color 0.15s ease'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    if (!isOverdue) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    if (!isOverdue) e.currentTarget.style.backgroundColor = 'transparent';
+                                                }}
+                                                title="Düzenlemek için tıklayın"
+                                            >
                                                 <td style={{ padding: '10px', fontWeight: '500', color: '#fff' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                                        <span>{item.institution}</span>
+                                                        <span>{item.institution || item.description || 'İsimsiz Ödeme'}</span>
                                                         {item.isRecurring && (() => {
                                                             const parsed = parseRecurringConfig(item.recurringFrequency);
                                                             return (
@@ -389,11 +459,17 @@ export default function Payments() {
                                                         })()}
                                                     </div>
                                                 </td>
-                                                <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{item.description}</td>
+                                                <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{item.description || '-'}</td>
                                                 <td style={{ padding: '10px', color: 'var(--text-muted)' }}>
-                                                    {item.statementDate ? new Date(item.statementDate).toLocaleDateString('tr-TR') : '-'}
+                                                    {item.statementDate && !isNaN(new Date(item.statementDate).getTime())
+                                                        ? new Date(item.statementDate).toLocaleDateString('tr-TR')
+                                                        : '-'}
                                                 </td>
-                                                <td style={{ padding: '10px', color: '#fff' }}>{new Date(item.dueDate).toLocaleDateString('tr-TR')}</td>
+                                                <td style={{ padding: '10px', color: '#fff' }}>
+                                                    {item.dueDate && !isNaN(new Date(item.dueDate).getTime())
+                                                        ? new Date(item.dueDate).toLocaleDateString('tr-TR')
+                                                        : '-'}
+                                                </td>
 
                                                 {/* Aligned Right */}
                                                 <td style={{ padding: '10px', fontWeight: 'bold', textAlign: 'right', whiteSpace: 'nowrap' }}>₺ {(item.amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -404,7 +480,7 @@ export default function Payments() {
                                                 <td style={{ padding: '10px' }}>
                                                     {(() => {
                                                         const isPaid = item.status === 'PAID';
-                                                        const isOverdue = !isPaid && new Date(item.dueDate) < new Date();
+                                                        const isItemOverdue = !isPaid && Boolean(item.dueDate) && !isNaN(new Date(item.dueDate).getTime()) && new Date(item.dueDate) < new Date();
 
                                                         let color = '#ffcc00';
                                                         let text = 'BEKLİYOR';
@@ -412,7 +488,7 @@ export default function Payments() {
                                                         if (isPaid) {
                                                             color = '#32d74b';
                                                             text = 'ÖDENDİ';
-                                                        } else if (isOverdue) {
+                                                        } else if (isItemOverdue) {
                                                             color = '#ff453a';
                                                             text = 'GECİKTİ';
                                                         }

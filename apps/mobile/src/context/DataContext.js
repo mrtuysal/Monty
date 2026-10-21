@@ -291,8 +291,8 @@ export function DataProvider({ children }) {
         if (updates.status !== undefined) dbUpdates.status = updates.status;
         if (updates.institution !== undefined) dbUpdates.institution = updates.institution;
         if (updates.description !== undefined) dbUpdates.description = updates.description;
-        if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
-        if (updates.statementDate !== undefined) dbUpdates.statement_date = updates.statementDate;
+        if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate || null;
+        if (updates.statementDate !== undefined) dbUpdates.statement_date = updates.statementDate || null;
         if (updates.type !== undefined) dbUpdates.type = updates.type;
         if (updates.balance !== undefined) dbUpdates.balance = updates.balance;
         if (updates.isRecurring !== undefined) dbUpdates.is_recurring = updates.isRecurring;

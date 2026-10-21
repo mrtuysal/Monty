@@ -29,7 +29,7 @@ export const mapPaymentToDB = (p, userId) => ({
     payment_amount: p.paymentAmount || p.amount,
     balance: p.balance || 0,
     currency: p.currency || 'TRY',
-    due_date: p.dueDate,
+    due_date: p.dueDate || null,
     statement_date: p.statementDate || null,
     status: p.status || 'PENDING',
     is_recurring: p.isRecurring || false,
