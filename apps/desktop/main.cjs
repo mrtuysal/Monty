@@ -9,6 +9,14 @@ const isDev = !app.isPackaged;
 app.disableHardwareAcceleration();
 console.log('Hardware Acceleration disabled.');
 
+// Global unhandled error protection
+process.on('uncaughtException', (err) => {
+    console.error('Unhandled Exception in main process:', err);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled Rejection in main process:', reason);
+});
+
 // ═══════════════════════════════════════════
 //  Auto-Updater Configuration
 // ═══════════════════════════════════════════
@@ -190,18 +198,45 @@ function cleanupOAuthServer() {
     }
 }
 
+// ═══════════════════════════════════════════
+//  OAuth Loopback Server (Secure Browser Login)
+// ═══════════════════════════════════════════
+let activeOAuthServer = null;
+let activeOAuthTimeout = null;
+
+function cleanupOAuthServer() {
+    if (activeOAuthTimeout) {
+        clearTimeout(activeOAuthTimeout);
+        activeOAuthTimeout = null;
+    }
+    if (activeOAuthServer) {
+        try {
+            activeOAuthServer.close();
+        } catch (e) { }
+        activeOAuthServer = null;
+    }
+}
+
 ipcMain.handle('prepare-oauth', async () => {
     cleanupOAuthServer();
 
     return new Promise((resolve, reject) => {
         const createServer = (port) => {
             const server = http.createServer((req, res) => {
-                const parsedUrl = new URL(req.url, `http://localhost:${server.address().port}`);
+                try {
+                    const parsedUrl = new URL(req.url, 'http://127.0.0.1');
 
-                if (parsedUrl.pathname === '/auth/callback') {
-                    // Serve callback landing page that extracts hash and POSTs back to /callback-complete
-                    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                    res.end(`<!DOCTYPE html>
+                    // Ignore favicon requests
+                    if (parsedUrl.pathname === '/favicon.ico') {
+                        res.writeHead(204);
+                        res.end();
+                        return;
+                    }
+
+                    if (parsedUrl.pathname === '/auth/callback') {
+                        // Serve callback landing page that extracts hash and POSTs back to /callback-complete
+                        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                        res.end(`<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="utf-8">
@@ -282,27 +317,34 @@ ipcMain.handle('prepare-oauth', async () => {
   </script>
 </body>
 </html>`);
-                } else if (parsedUrl.pathname === '/callback-complete' && req.method === 'POST') {
-                    let body = '';
-                    req.on('data', chunk => body += chunk);
-                    req.on('end', () => {
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ ok: true }));
+                    } else if (parsedUrl.pathname === '/callback-complete' && req.method === 'POST') {
+                        let body = '';
+                        req.on('data', chunk => body += chunk);
+                        req.on('end', () => {
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ ok: true }));
 
-                        try {
-                            const data = JSON.parse(body || '{}');
-                            if (activeOAuthServer && activeOAuthServer.onAuthComplete) {
-                                activeOAuthServer.onAuthComplete(data);
+                            try {
+                                const data = JSON.parse(body || '{}');
+                                if (activeOAuthServer && activeOAuthServer.onAuthComplete) {
+                                    activeOAuthServer.onAuthComplete(data);
+                                }
+                            } catch (e) {
+                                if (activeOAuthServer && activeOAuthServer.onAuthComplete) {
+                                    activeOAuthServer.onAuthComplete({ error: 'Payload parse failed' });
+                                }
                             }
-                        } catch (e) {
-                            if (activeOAuthServer && activeOAuthServer.onAuthComplete) {
-                                activeOAuthServer.onAuthComplete({ error: 'Payload parse failed' });
-                            }
-                        }
-                    });
-                } else {
-                    res.writeHead(404);
-                    res.end('Not Found');
+                        });
+                    } else {
+                        res.writeHead(404);
+                        res.end('Not Found');
+                    }
+                } catch (requestErr) {
+                    console.error('OAuth server request error:', requestErr);
+                    try {
+                        res.writeHead(500);
+                        res.end('Server Error');
+                    } catch (e) { }
                 }
             });
 
@@ -316,7 +358,7 @@ ipcMain.handle('prepare-oauth', async () => {
             });
 
             server.listen(port, '127.0.0.1', () => {
-                const assignedPort = server.address().port;
+                const assignedPort = server.address() ? server.address().port : port;
                 console.log(`OAuth loopback server listening on 127.0.0.1:${assignedPort}`);
                 activeOAuthServer = server;
                 resolve({ port: assignedPort });
@@ -338,7 +380,11 @@ ipcMain.handle('wait-for-oauth', async (event, url) => {
         const complete = (data) => {
             if (isResolved) return;
             isResolved = true;
-            cleanupOAuthServer();
+
+            // Allow 3 seconds for browser to receive responses before closing server
+            setTimeout(() => {
+                cleanupOAuthServer();
+            }, 3000);
 
             if (mainWindow && !mainWindow.isDestroyed()) {
                 if (mainWindow.isMinimized()) mainWindow.restore();
