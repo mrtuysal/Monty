@@ -19,7 +19,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0a0a0a"
+        "backgroundColor": "#f4f431"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.monty.mobile"
